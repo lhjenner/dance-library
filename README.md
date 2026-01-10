@@ -13,7 +13,7 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - **Auto-refresh** - Automatically detect new videos added to playlists
 - **Hide Empty Playlists** - Empty playlists hidden by default with toggle to show/hide
 - **Create/Rename/Delete** - Full playlist management that syncs with YouTube
-- **Move/Copy Videos** - Organize videos between playlists
+- **Move/Copy Videos** - Organize videos between playlists with independent empty playlist toggle
 - **Newest First** - Videos sorted with newest at the top
 - **Untagged Indicators** - Visual badges showing videos without tags
 
