@@ -11,6 +11,7 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 ### Playlist Management
 - **Sync YouTube Playlists** - Connect and sync your YouTube playlists
 - **Auto-refresh** - Automatically detect new videos added to playlists
+- **Hide Empty Playlists** - Empty playlists hidden by default with toggle to show/hide
 - **Create/Rename/Delete** - Full playlist management that syncs with YouTube
 - **Move/Copy Videos** - Organize videos between playlists
 - **Newest First** - Videos sorted with newest at the top
@@ -43,6 +44,7 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - **YouTube IFrame Player API** - Embedded video player with precise playback control
 
 ### Backend & Database
+- **Firebase Authentication** - User authentication and management
 - **Firebase Firestore** - NoSQL database for video metadata, tags, and segments
 - **Firebase Hosting** - Static site hosting
 
@@ -58,6 +60,7 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 ```javascript
 {
   id: "playlist_youtube_id",
+  userId: "user_123",
   title: "Moves to Learn",
   youtubeId: "PLxxx...",
   lastSynced: timestamp,
@@ -69,6 +72,7 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 ```javascript
 {
   id: "video_youtube_id",
+  userId: "user_123",
   youtubeId: "dQw4w9WgXcQ",
   title: "Advanced Whip Variations",
   thumbnail: "https://...",
@@ -98,20 +102,22 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 **User Preferences**
 ```javascript
 {
-  userId: "single_user",
+  userId: "user_123",
   defaultPlaybackSpeed: 0.75,
-  lastAccessedPlaylist: "playlist_id"
+  lastAccessedPlaylist: "playlist_id",
+  showEmptyPlaylists: false
 }
 ```
 
 ### Application Flow
 
-1. **Authentication** - User logs in with Google (OAuth 2.0) to grant YouTube access
-2. **Playlist Sync** - App fetches user's playlists and videos via YouTube API
-3. **Data Storage** - Video metadata stored in Firestore for fast access
-4. **User Interaction** - Add tags, mark segments, manage playlists
-5. **Playback** - Embedded YouTube player with custom controls and segment jumping
-6. **Sync Changes** - Playlist modifications (add/remove/move) synced back to YouTube
+1. **Authentication** - User logs in with Google (Firebase Auth + OAuth 2.0) to grant YouTube access
+2. **User Isolation** - All data queries filtered by authenticated user's ID
+3. **Playlist Sync** - App fetches user's playlists and videos via YouTube API
+4. **Data Storage** - Video metadata stored in Firestore with userId for isolation
+5. **User Interaction** - Add tags, mark segments, manage playlists
+6. **Playback** - Embedded YouTube player with custom controls and segment jumping
+7. **Sync Changes** - Playlist modifications (add/remove/move) synced back to YouTube
 
 ## Implementation Roadmap
 
@@ -119,14 +125,17 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - [x] Initialize Git repository
 - [ ] Set up React + Vite project
 - [ ] Configure Tailwind CSS
-- [ ] Set up Firebase project (Firestore + Hosting)
-- [ ] Implement Google OAuth 2.0 authentication
-- [ ] Configure YouTube Data API v3 credentials
+- [ ] Set up Firebase project (Authentication + Firestore + Hosting)
+- [ ] Implement Firebase Authentication with Google provider
+- [ ] Configure YouTube Data API v3 OAuth 2.0 credentials
+- [ ] Set up Firestore security rules for multi-user data isolation
 
 ### Phase 2: YouTube Integration
 - [ ] Fetch user's YouTube playlists
 - [ ] Fetch videos from playlists
-- [ ] Display playlists in UI
+- [ ] Store playlists and videos with userId in Firestore
+- [ ] Display playlists in UI (hide empty by default)
+- [ ] Add toggle to show/hide empty playlists
 - [ ] Display videos in playlist view
 - [ ] Implement playlist sync/refresh functionality
 
