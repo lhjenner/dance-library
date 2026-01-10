@@ -123,7 +123,7 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 
 ### Phase 1: Project Setup & Authentication
 - [x] Initialize Git repository
-- [ ] Set up React + Vite project
+- [x] Set up React + Vite project
 - [ ] Configure Tailwind CSS
 - [ ] Set up Firebase project (Authentication + Firestore + Hosting)
 - [ ] Implement Firebase Authentication with Google provider
