@@ -125,10 +125,10 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - [x] Initialize Git repository
 - [x] Set up React + Vite project
 - [x] Configure Tailwind CSS
-- [ ] Set up Firebase project (Authentication + Firestore + Hosting)
-- [ ] Implement Firebase Authentication with Google provider
+- [x] Set up Firebase project (Authentication + Firestore + Hosting)
+- [x] Implement Firebase Authentication with Google provider
 - [ ] Configure YouTube Data API v3 OAuth 2.0 credentials
-- [ ] Set up Firestore security rules for multi-user data isolation
+- [x] Set up Firestore security rules for multi-user data isolation
 
 ### Phase 2: YouTube Integration
 - [ ] Fetch user's YouTube playlists

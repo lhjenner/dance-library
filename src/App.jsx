@@ -1,22 +1,48 @@
-import { useState } from 'react'
+import { useAuth } from './contexts/AuthContext'
+import Login from './components/Login'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { user, loading, signOut } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Login />
+  }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
-      <h1 className="text-5xl font-bold mb-8">Dance Library</h1>
-      <div className="bg-gray-800 p-8 rounded-lg shadow-xl">
-        <button 
-          onClick={() => setCount((count) => count + 1)}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-        >
-          Count is {count}
-        </button>
-        <p className="mt-4 text-gray-400 text-center">
-          Tailwind CSS is working! 🎉
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <nav className="bg-gray-800 border-b border-gray-700 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Dance Library</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-gray-400">
+              {user.displayName || user.email}
+            </span>
+            <button
+              onClick={signOut}
+              className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </nav>
+      
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        <div className="text-center py-12">
+          <h2 className="text-3xl font-bold mb-4">Welcome to Dance Library! 🎉</h2>
+          <p className="text-gray-400">
+            Firebase Authentication is working. Ready to start building features!
+          </p>
+        </div>
+      </main>
     </div>
   )
 }
