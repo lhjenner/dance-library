@@ -116,7 +116,7 @@ export default function VideoPlayer({ video, onBack }) {
       {/* Back button */}
       <button
         onClick={onBack}
-        className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+        className="mb-4 sm:mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors touch-manipulation"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -125,27 +125,27 @@ export default function VideoPlayer({ video, onBack }) {
       </button>
 
       {/* Video Title */}
-      <h2 className="text-2xl font-bold mb-6">{video.title}</h2>
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">{video.title}</h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Video Player */}
         <div className="lg:col-span-2">
-          <div className="bg-gray-800 rounded-lg overflow-hidden mb-4">
+          <div className="bg-gray-800 rounded-lg overflow-hidden mb-4 relative">
             <div ref={playerRef} className="w-full aspect-video"></div>
           </div>
 
           {/* Playback Controls */}
-          <div className="bg-gray-800 rounded-lg p-4 mb-4">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 sm:mb-4">
               <button
                 onClick={handlePlayPause}
                 disabled={!player}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-3 sm:py-2 rounded-lg transition-colors w-full sm:w-auto touch-manipulation text-base sm:text-sm"
               >
                 {isPlaying ? 'Pause' : 'Play'}
               </button>
               
-              <div className="text-gray-400">
+              <div className="text-gray-400 text-sm sm:text-base">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </div>
             </div>
@@ -153,12 +153,12 @@ export default function VideoPlayer({ video, onBack }) {
             {/* Speed Controls */}
             <div>
               <div className="text-sm text-gray-400 mb-2">Playback Speed</div>
-              <div className="flex gap-2 flex-wrap">
+              <div className="grid grid-cols-4 sm:flex gap-2">
                 {speeds.map(speed => (
                   <button
                     key={speed}
                     onClick={() => handleSpeedChange(speed)}
-                    className={`px-3 py-1 rounded transition-colors ${
+                    className={`px-3 py-2 sm:py-1 rounded transition-colors touch-manipulation ${
                       playbackSpeed === speed
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -172,17 +172,17 @@ export default function VideoPlayer({ video, onBack }) {
           </div>
 
           {/* Segment Marking */}
-          <div className="bg-gray-800 rounded-lg p-4 mb-4">
-            <h3 className="text-lg font-semibold mb-4">Mark Segment</h3>
+          <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4">
+            <h3 className="text-base sm:text-lg font-semibold mb-4">Mark Segment</h3>
             
             {/* Click-based marking */}
             <div className="mb-6">
               <div className="text-sm text-gray-400 mb-2">Click to Mark</div>
-              <div className="flex items-center gap-4 mb-2">
+              <div className="flex items-center gap-2 sm:gap-4 mb-2">
                 <button
                   onClick={() => handleSetStart(currentTime)}
                   disabled={!player}
-                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-4 py-3 sm:py-2 rounded-lg transition-colors flex-1 sm:flex-none touch-manipulation"
                 >
                   Set Start
                 </button>
@@ -190,7 +190,7 @@ export default function VideoPlayer({ video, onBack }) {
                 <button
                   onClick={() => handleSetEnd(currentTime)}
                   disabled={!player || currentSegment.start === null}
-                  className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                  className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white px-4 py-3 sm:py-2 rounded-lg transition-colors flex-1 sm:flex-none touch-manipulation"
                 >
                   Set End
                 </button>
@@ -206,13 +206,13 @@ export default function VideoPlayer({ video, onBack }) {
             {/* Manual time input */}
             <div>
               <div className="text-sm text-gray-400 mb-2">Or Enter Manually (MM:SS)</div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap sm:flex-nowrap">
                 <input
                   type="text"
                   placeholder="0:00"
                   value={manualStart}
                   onChange={(e) => setManualStart(e.target.value)}
-                  className="bg-gray-700 text-white px-3 py-2 rounded w-20 text-center"
+                  className="bg-gray-700 text-white px-3 py-3 sm:py-2 rounded w-24 sm:w-20 text-center text-base sm:text-sm touch-manipulation"
                 />
                 <span className="text-gray-400">→</span>
                 <input
@@ -220,12 +220,12 @@ export default function VideoPlayer({ video, onBack }) {
                   placeholder="0:00"
                   value={manualEnd}
                   onChange={(e) => setManualEnd(e.target.value)}
-                  className="bg-gray-700 text-white px-3 py-2 rounded w-20 text-center"
+                  className="bg-gray-700 text-white px-3 py-3 sm:py-2 rounded w-24 sm:w-20 text-center text-base sm:text-sm touch-manipulation"
                 />
                 <button
                   onClick={() => handleManualSegment(duration)}
                   disabled={!manualStart || !manualEnd}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-3 sm:py-2 rounded-lg transition-colors flex-1 sm:flex-none touch-manipulation"
                 >
                   Add
                 </button>
@@ -237,8 +237,8 @@ export default function VideoPlayer({ video, onBack }) {
           </div>
 
           {/* Tags and Notes */}
-          <div className="bg-gray-800 rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-4">Tags & Notes</h3>
+          <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
+            <h3 className="text-base sm:text-lg font-semibold mb-4">Tags & Notes</h3>
             
             {/* Video Tags */}
             <div className="mb-6">
@@ -247,7 +247,7 @@ export default function VideoPlayer({ video, onBack }) {
                 {videoTags.map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center gap-1 bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
+                    className="inline-flex items-center gap-1 bg-blue-600 text-white px-3 py-2 sm:py-1 rounded-full text-sm touch-manipulation"
                   >
                     {tag}
                     <button
@@ -265,7 +265,7 @@ export default function VideoPlayer({ video, onBack }) {
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleAddTag}
-                className="w-full bg-gray-700 text-white px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-gray-700 text-white px-3 py-3 sm:py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-base sm:text-sm touch-manipulation"
               />
               <div className="text-xs text-gray-500 mt-1">
                 e.g., "whip", "lindy hop", "advanced"
@@ -280,7 +280,7 @@ export default function VideoPlayer({ video, onBack }) {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 onBlur={handleSaveNotes}
-                className="w-full bg-gray-700 text-white px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full bg-gray-700 text-white px-3 py-3 sm:py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-base sm:text-sm touch-manipulation"
                 rows={4}
               />
               <div className="text-xs text-gray-500 mt-1">
@@ -292,14 +292,14 @@ export default function VideoPlayer({ video, onBack }) {
 
         {/* Segments List */}
         <div className="lg:col-span-1">
-          <div className="bg-gray-800 rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-4">
+          <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
+            <h3 className="text-base sm:text-lg font-semibold mb-4">
               Segments ({segments.length})
             </h3>
 
             {segments.length === 0 ? (
               <p className="text-gray-400 text-sm">
-                No segments yet. Mark segments using the controls on the left.
+                No segments yet. Mark segments using the controls above.
               </p>
             ) : (
               <div className="space-y-3">

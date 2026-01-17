@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useYouTube } from '../../contexts/YouTubeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import VideoPlayer from '../videoplayer';
+import VideoPlayer from '../videoplayer/VideoPlayer';
 import VideoListHeader from './VideoListHeader';
 import TagFilter from './TagFilter';
 import VideoCard from './VideoCard';

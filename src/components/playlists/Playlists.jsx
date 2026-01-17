@@ -358,9 +358,9 @@ function Playlists() {
         isCreating={syncing}
       />
 
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Your Playlists</h2>
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold">Your Playlists</h2>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
@@ -368,20 +368,20 @@ function Playlists() {
               onChange={(e) => setShowEmptyPlaylists(e.target.checked)}
               className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
             />
-            <span className="text-gray-300">Show empty playlists</span>
+            <span className="text-gray-300 whitespace-nowrap">Show empty</span>
           </label>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
           >
-            Create Playlist
+            Create
           </button>
           <button
             onClick={syncPlaylists}
             disabled={syncing}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
           >
-            {syncing ? 'Syncing...' : 'Sync Playlists'}
+            {syncing ? 'Syncing...' : 'Sync'}
           </button>
         </div>
       </div>
