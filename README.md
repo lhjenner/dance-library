@@ -172,9 +172,13 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - [x] Component refactoring (VideoList split into 10 files with custom hooks)
 
 ### Phase 6: Mobile Optimization
-- [ ] Responsive design for mobile devices
+- [x] Responsive design for mobile devices
+- [x] Touch-friendly controls with larger touch targets
+- [x] Mobile-first responsive layouts (flex-col sm:flex-row)
+- [x] Responsive text sizes and padding
+- [x] Full-width buttons on mobile where appropriate
+- [x] Mobile-optimized snackbar positioning
 - [ ] Fullscreen video on rotation
-- [ ] Touch-friendly controls
 - [ ] Test on Android devices
 
 ### Phase 7: Polish & Deployment
