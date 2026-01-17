@@ -11,7 +11,14 @@ function VideoList({ playlist, onBack }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [selectedVideo, setSelectedVideo] = useState(() => {
+    // Restore selected video from localStorage
+    if (user) {
+      const stored = localStorage.getItem(`selected_video_${user.uid}`);
+      return stored ? JSON.parse(stored) : null;
+    }
+    return null;
+  });
   const [selectedTags, setSelectedTags] = useState([]);
   const [showUntaggedOnly, setShowUntaggedOnly] = useState(false);
   const [allTags, setAllTags] = useState([]);
@@ -19,6 +26,17 @@ function VideoList({ playlist, onBack }) {
   useEffect(() => {
     loadVideos();
   }, [playlist.id]);
+
+  // Save selected video to localStorage
+  useEffect(() => {
+    if (user) {
+      if (selectedVideo) {
+        localStorage.setItem(`selected_video_${user.uid}`, JSON.stringify(selectedVideo));
+      } else {
+        localStorage.removeItem(`selected_video_${user.uid}`);
+      }
+    }
+  }, [selectedVideo, user]);
 
   const loadVideos = async () => {
     try {
@@ -60,17 +78,39 @@ function VideoList({ playlist, onBack }) {
       const querySnapshot = await getDocs(q);
       
       const loadedVideos = [];
-      querySnapshot.forEach((doc) => {
-        loadedVideos.push({ id: doc.id, ...doc.data() });
-      });
+      
+      // Load videos and their segments
+      for (const videoDoc of querySnapshot.docs) {
+        const videoData = { id: videoDoc.id, ...videoDoc.data() };
+        
+        // Load segments for this video
+        const segmentsRef = collection(videoDoc.ref, 'segments');
+        const segmentsSnapshot = await getDocs(segmentsRef);
+        
+        const segmentTags = [];
+        segmentsSnapshot.forEach((segDoc) => {
+          const segData = segDoc.data();
+          if (segData.tags) {
+            segmentTags.push(...segData.tags);
+          }
+        });
+        
+        // Combine video tags and segment tags
+        videoData.allTags = [
+          ...(videoData.tags || []),
+          ...segmentTags
+        ];
+        
+        loadedVideos.push(videoData);
+      }
 
       setVideos(loadedVideos);
 
-      // Extract all unique tags from videos
+      // Extract all unique tags from videos (including segment tags)
       const tagsSet = new Set();
       loadedVideos.forEach(video => {
-        if (video.tags) {
-          video.tags.forEach(tag => tagsSet.add(tag));
+        if (video.allTags) {
+          video.allTags.forEach(tag => tagsSet.add(tag));
         }
       });
       setAllTags(Array.from(tagsSet).sort());
@@ -91,15 +131,15 @@ function VideoList({ playlist, onBack }) {
   };
 
   const filteredVideos = videos.filter(video => {
-    // Filter by untagged
+    // Filter by untagged (only checking video-level tags, not segment tags)
     if (showUntaggedOnly) {
       return !video.tags || video.tags.length === 0;
     }
     
-    // Filter by selected tags
+    // Filter by selected tags (check both video and segment tags)
     if (selectedTags.length > 0) {
-      if (!video.tags || video.tags.length === 0) return false;
-      return selectedTags.some(tag => video.tags.includes(tag));
+      if (!video.allTags || video.allTags.length === 0) return false;
+      return selectedTags.some(tag => video.allTags.includes(tag));
     }
     
     return true;
@@ -231,15 +271,15 @@ function VideoList({ playlist, onBack }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-lg">{video.title}</h3>
-                  {(!video.tags || video.tags.length === 0) && (
+                  {(!video.allTags || video.allTags.length === 0) && (
                     <span className="bg-orange-600 text-white text-xs px-2 py-1 rounded-full flex-shrink-0">
                       No tags
                     </span>
                   )}
                 </div>
-                {video.tags && video.tags.length > 0 && (
+                {video.allTags && video.allTags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {video.tags.map((tag) => (
+                    {[...new Set(video.allTags)].map((tag) => (
                       <span
                         key={tag}
                         className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full"
