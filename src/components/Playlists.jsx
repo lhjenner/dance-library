@@ -2,7 +2,65 @@ import { useState, useEffect } from 'react';
 import { useYouTube } from '../contexts/YouTubeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
-import { collection, doc, setDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, query, where, updateDoc } from 'firebase/firestore';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+function SortablePlaylistItem({ playlist }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: playlist.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="bg-gray-800 rounded-lg px-4 py-3 flex items-center gap-4 hover:bg-gray-750 transition-colors"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-white"
+        aria-label="Drag to reorder"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+        </svg>
+      </button>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold text-lg truncate">{playlist.title}</h3>
+        <p className="text-gray-400 text-sm">
+          {playlist.videoCount} video{playlist.videoCount !== 1 ? 's' : ''}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function Playlists() {
   const { user } = useAuth();
@@ -10,6 +68,13 @@ function Playlists() {
   const [playlists, setPlaylists] = useState([]);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const handleConnectYouTube = async () => {
     try {
@@ -29,10 +94,24 @@ function Playlists() {
       // Fetch playlists from YouTube
       const youtubePlaylists = await getPlaylists();
       
-      // Save to Firestore
+      // Get existing playlists to preserve order
       const playlistsRef = collection(db, 'playlists');
+      const q = query(playlistsRef, where('userId', '==', user.uid));
+      const existingSnapshot = await getDocs(q);
       
-      for (const playlist of youtubePlaylists) {
+      const existingOrders = {};
+      let maxOrder = 0;
+      existingSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.order !== undefined) {
+          existingOrders[doc.id] = data.order;
+          maxOrder = Math.max(maxOrder, data.order);
+        }
+      });
+      
+      // Save to Firestore
+      for (let i = 0; i < youtubePlaylists.length; i++) {
+        const playlist = youtubePlaylists[i];
         const playlistData = {
           id: playlist.id,
           userId: user.uid,
@@ -42,6 +121,7 @@ function Playlists() {
           thumbnail: playlist.snippet.thumbnails?.medium?.url || '',
           videoCount: playlist.contentDetails.itemCount,
           lastSynced: new Date(),
+          order: existingOrders[playlist.id] !== undefined ? existingOrders[playlist.id] : maxOrder + i + 1,
         };
         
         await setDoc(doc(playlistsRef, playlist.id), playlistData);
@@ -68,17 +148,55 @@ function Playlists() {
         loadedPlaylists.push({ id: doc.id, ...doc.data() });
       });
       
+      // Sort by order field
+      loadedPlaylists.sort((a, b) => (a.order || 0) - (b.order || 0));
+      
       setPlaylists(loadedPlaylists);
     } catch (err) {
       console.error('Error loading playlists:', err);
     }
   };
 
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      const oldIndex = playlists.findIndex((p) => p.id === active.id);
+      const newIndex = playlists.findIndex((p) => p.id === over.id);
+
+      const newPlaylists = arrayMove(playlists, oldIndex, newIndex);
+      
+      // Update order values
+      const updatedPlaylists = newPlaylists.map((playlist, index) => ({
+        ...playlist,
+        order: index,
+      }));
+      
+      setPlaylists(updatedPlaylists);
+
+      // Save new order to Firestore
+      try {
+        for (const playlist of updatedPlaylists) {
+          const playlistRef = doc(db, 'playlists', playlist.id);
+          await updateDoc(playlistRef, { order: playlist.order });
+        }
+      } catch (err) {
+        console.error('Error saving playlist order:', err);
+        setError('Failed to save playlist order. Please try again.');
+      }
+    }
+  };
+
   useEffect(() => {
     if (isYouTubeConnected && user) {
       loadPlaylists();
+      // Auto-sync on load
+      syncPlaylists();
+    } else if (!isYouTubeConnected && !isLoading && user) {
+      // Auto-connect YouTube when user logs in
+      handleConnectYouTube();
     }
-  }, [isYouTubeConnected, user]);
+  }, [isYouTubeConnected, user, isLoading]);
 
   if (isLoading) {
     return (
@@ -139,30 +257,23 @@ function Playlists() {
           <p className="text-gray-400 mb-4">No playlists found. Click "Sync Playlists" to load your YouTube playlists.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {playlists.map((playlist) => (
-            <div
-              key={playlist.id}
-              className="bg-gray-800 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer"
+        <div className="max-w-3xl">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={playlists.map(p => p.id)}
+              strategy={verticalListSortingStrategy}
             >
-              {playlist.thumbnail && (
-                <img
-                  src={playlist.thumbnail}
-                  alt={playlist.title}
-                  className="w-full h-48 object-cover"
-                />
-              )}
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2 line-clamp-2">{playlist.title}</h3>
-                <p className="text-gray-400 text-sm mb-2 line-clamp-2">
-                  {playlist.description || 'No description'}
-                </p>
-                <p className="text-gray-500 text-sm">
-                  {playlist.videoCount} video{playlist.videoCount !== 1 ? 's' : ''}
-                </p>
+              <div className="space-y-2">
+                {playlists.map((playlist) => (
+                  <SortablePlaylistItem key={playlist.id} playlist={playlist} />
+                ))}
               </div>
-            </div>
-          ))}
+            </SortableContext>
+          </DndContext>
         </div>
       )}
     </div>
