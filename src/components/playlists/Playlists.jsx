@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useYouTube } from '../../contexts/YouTubeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase/config';
-import { collection, doc, setDoc, getDocs, query, where, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, query, where, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import {
   DndContext,
   closestCenter,
@@ -17,7 +17,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import VideoList from '../VideoList';
+import VideoList from '../videolist/VideoList';
 import SortablePlaylistItem from './SortablePlaylistItem';
 import CreatePlaylistModal from './CreatePlaylistModal';
 
@@ -110,8 +110,7 @@ function Playlists() {
         await setDoc(doc(playlistsRef, playlist.id), playlistData);
       }
       
-      // Fetch from Firestore to display
-      await loadPlaylists();
+      // onSnapshot will automatically update the UI
     } catch (err) {
       setError('Failed to sync playlists. Please try again.');
       console.error(err);
@@ -139,6 +138,30 @@ function Playlists() {
       console.error('Error loading playlists:', err);
     }
   };
+
+  // Set up real-time listener for playlists
+  useEffect(() => {
+    if (!isYouTubeConnected || !user) return;
+
+    const playlistsRef = collection(db, 'playlists');
+    const q = query(playlistsRef, where('userId', '==', user.uid));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const loadedPlaylists = [];
+      querySnapshot.forEach((doc) => {
+        loadedPlaylists.push({ id: doc.id, ...doc.data() });
+      });
+      
+      // Sort by order field
+      loadedPlaylists.sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+      setPlaylists(loadedPlaylists);
+    }, (err) => {
+      console.error('Error listening to playlists:', err);
+    });
+
+    return () => unsubscribe();
+  }, [isYouTubeConnected, user]);
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
@@ -196,9 +219,7 @@ function Playlists() {
       
       await setDoc(doc(playlistsRef, result.id), playlistData);
       
-      // Reload playlists
-      await loadPlaylists();
-      
+      // onSnapshot will automatically update the UI
       setNewPlaylistTitle('');
       setShowCreateModal(false);
     } catch (err) {
@@ -268,7 +289,6 @@ function Playlists() {
 
   useEffect(() => {
     if (isYouTubeConnected && user) {
-      loadPlaylists();
       // Auto-sync on load
       syncPlaylists();
     }

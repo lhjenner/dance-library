@@ -183,7 +183,7 @@ export function YouTubeProvider({ children }) {
   };
 
   const createPlaylist = async (title, description = '') => {
-    const url = 'https://www.googleapis.com/youtube/v3/playlists';
+    const url = 'https://www.googleapis.com/youtube/v3/playlists?part=snippet,status';
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -199,9 +199,6 @@ export function YouTubeProvider({ children }) {
           privacyStatus: 'private',
         },
       }),
-      params: {
-        part: 'snippet,status',
-      },
     });
 
     if (response.status === 401 || response.status === 403) {
@@ -288,7 +285,7 @@ export function YouTubeProvider({ children }) {
   };
 
   const addVideoToPlaylist = async (playlistId, videoId) => {
-    const url = 'https://www.googleapis.com/youtube/v3/playlistItems';
+    const url = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet';
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -304,9 +301,6 @@ export function YouTubeProvider({ children }) {
           },
         },
       }),
-      params: {
-        part: 'snippet',
-      },
     });
 
     if (response.status === 401 || response.status === 403) {
