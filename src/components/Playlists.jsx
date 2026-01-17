@@ -19,8 +19,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import VideoList from './VideoList';
 
-function SortablePlaylistItem({ playlist }) {
+function SortablePlaylistItem({ playlist, onClick }) {
   const {
     attributes,
     listeners,
@@ -36,15 +37,25 @@ function SortablePlaylistItem({ playlist }) {
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const handleClick = (e) => {
+    // Don't trigger click if dragging
+    if (isDragging) return;
+    // Don't trigger click if clicking the drag handle
+    if (e.target.closest('[data-drag-handle]')) return;
+    onClick();
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-gray-800 rounded-lg px-4 py-3 flex items-center gap-4 hover:bg-gray-750 transition-colors"
+      onClick={handleClick}
+      className="bg-gray-800 rounded-lg px-4 py-3 flex items-center gap-4 hover:bg-gray-750 transition-colors cursor-pointer"
     >
       <button
         {...attributes}
         {...listeners}
+        data-drag-handle
         className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-white"
         aria-label="Drag to reorder"
       >
@@ -68,6 +79,8 @@ function Playlists() {
   const [playlists, setPlaylists] = useState([]);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
+  const [showEmptyPlaylists, setShowEmptyPlaylists] = useState(true);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -192,11 +205,8 @@ function Playlists() {
       loadPlaylists();
       // Auto-sync on load
       syncPlaylists();
-    } else if (!isYouTubeConnected && !isLoading && user) {
-      // Auto-connect YouTube when user logs in
-      handleConnectYouTube();
     }
-  }, [isYouTubeConnected, user, isLoading]);
+  }, [isYouTubeConnected, user]);
 
   if (isLoading) {
     return (
@@ -233,17 +243,43 @@ function Playlists() {
     );
   }
 
+  // If a playlist is selected, show the video list
+  if (selectedPlaylist) {
+    return (
+      <VideoList
+        playlist={selectedPlaylist}
+        onBack={() => setSelectedPlaylist(null)}
+      />
+    );
+  }
+
+  // Filter playlists based on showEmptyPlaylists setting
+  const displayedPlaylists = showEmptyPlaylists
+    ? playlists
+    : playlists.filter(p => p.videoCount > 0);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Your Playlists</h2>
-        <button
-          onClick={syncPlaylists}
-          disabled={syncing}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
-        >
-          {syncing ? 'Syncing...' : 'Sync Playlists'}
-        </button>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showEmptyPlaylists}
+              onChange={(e) => setShowEmptyPlaylists(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
+            />
+            <span className="text-gray-300">Show empty playlists</span>
+          </label>
+          <button
+            onClick={syncPlaylists}
+            disabled={syncing}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
+          >
+            {syncing ? 'Syncing...' : 'Sync Playlists'}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -252,9 +288,13 @@ function Playlists() {
         </div>
       )}
 
-      {playlists.length === 0 ? (
+      {displayedPlaylists.length === 0 ? (
         <div className="text-center py-12 bg-gray-800 rounded-lg">
-          <p className="text-gray-400 mb-4">No playlists found. Click "Sync Playlists" to load your YouTube playlists.</p>
+          <p className="text-gray-400 mb-4">
+            {playlists.length === 0
+              ? 'No playlists found. Click "Sync Playlists" to load your YouTube playlists.'
+              : 'No playlists to show. Enable "Show empty playlists" to see all playlists.'}
+          </p>
         </div>
       ) : (
         <div className="max-w-3xl">
@@ -264,12 +304,16 @@ function Playlists() {
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={playlists.map(p => p.id)}
+              items={displayedPlaylists.map(p => p.id)}
               strategy={verticalListSortingStrategy}
             >
               <div className="space-y-2">
-                {playlists.map((playlist) => (
-                  <SortablePlaylistItem key={playlist.id} playlist={playlist} />
+                {displayedPlaylists.map((playlist) => (
+                  <SortablePlaylistItem
+                    key={playlist.id}
+                    playlist={playlist}
+                    onClick={() => setSelectedPlaylist(playlist)}
+                  />
                 ))}
               </div>
             </SortableContext>
