@@ -11,6 +11,7 @@ export default function VideoPlayer({ video, onBack }) {
   const [videoTags, setVideoTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   const [notes, setNotes] = useState('');
+  const [isLandscape, setIsLandscape] = useState(false);
 
   const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
 
@@ -64,6 +65,23 @@ export default function VideoPlayer({ video, onBack }) {
     loadVideoData();
   }, [video.id, user.uid]);
 
+  // Detect orientation changes for mobile landscape mode
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      const isLandscapeOrientation = window.innerWidth > window.innerHeight && window.innerWidth < 1024;
+      setIsLandscape(isLandscapeOrientation);
+    };
+
+    handleOrientationChange(); // Check initial orientation
+    window.addEventListener('resize', handleOrientationChange);
+    window.addEventListener('orientationchange', handleOrientationChange);
+
+    return () => {
+      window.removeEventListener('resize', handleOrientationChange);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+    };
+  }, []);
+
   const handleAddTag = async (e) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       e.preventDefault();
@@ -113,16 +131,78 @@ export default function VideoPlayer({ video, onBack }) {
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Back button */}
-      <button
-        onClick={onBack}
-        className="mb-4 sm:mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors touch-manipulation"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back to Videos
-      </button>
+      {/* Landscape Mode - Almost fullscreen with controls below video */}
+      {isLandscape ? (
+        <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+          {/* Video Player - Takes most of the screen */}
+          <div className="flex-1 relative bg-black">
+            <div ref={playerRef} className="w-full h-full"></div>
+          </div>
+
+          {/* Controls Bar - Below video */}
+          <div className="bg-gray-800 p-2 flex items-center gap-4">
+            {/* Back button */}
+            <button
+              onClick={onBack}
+              className="text-gray-400 hover:text-white transition-colors touch-manipulation p-2"
+              title="Back to Videos"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Speed Controls - Left side */}
+            <div className="flex gap-1">
+              {[0.25, 0.5, 0.75, 1].map(speed => (
+                <button
+                  key={speed}
+                  onClick={() => handleSpeedChange(speed)}
+                  className={`px-3 py-2 rounded transition-colors touch-manipulation text-sm ${
+                    playbackSpeed === speed
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
+
+            {/* Spacer */}
+            <div className="flex-1"></div>
+
+            {/* Segment Controls - Right side */}
+            <button
+              onClick={() => handleSetStart(currentTime)}
+              disabled={!player}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-4 py-2 rounded transition-colors touch-manipulation text-sm"
+            >
+              Set Start
+            </button>
+            
+            <button
+              onClick={() => handleSetEnd(currentTime)}
+              disabled={!player || currentSegment.start === null}
+              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white px-4 py-2 rounded transition-colors touch-manipulation text-sm"
+            >
+              Set End
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Normal Portrait/Desktop Layout */
+        <>
+          {/* Back button */}
+          <button
+            onClick={onBack}
+            className="mb-4 sm:mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors touch-manipulation"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Videos
+          </button>
 
       {/* Video Title */}
       <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">{video.title}</h2>
@@ -320,6 +400,8 @@ export default function VideoPlayer({ video, onBack }) {
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

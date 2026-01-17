@@ -178,7 +178,9 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - [x] Responsive text sizes and padding
 - [x] Full-width buttons on mobile where appropriate
 - [x] Mobile-optimized snackbar positioning
-- [ ] Fullscreen video on rotation
+- [x] Improved video title display (3 lines on mobile vs 2 on desktop)
+- [x] Landscape mode with almost-fullscreen video
+- [x] Landscape controls bar with speed controls and segment marking
 - [ ] Test on Android devices
 
 ### Phase 7: Polish & Deployment
