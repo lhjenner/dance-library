@@ -3,6 +3,7 @@ import { useYouTube } from '../contexts/YouTubeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
 import { collection, doc, setDoc, getDocs, query, where } from 'firebase/firestore';
+import VideoPlayer from './VideoPlayer';
 
 function VideoList({ playlist, onBack }) {
   const { user } = useAuth();
@@ -10,6 +11,7 @@ function VideoList({ playlist, onBack }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedVideo, setSelectedVideo] = useState(null);
 
   useEffect(() => {
     loadVideos();
@@ -87,6 +89,16 @@ function VideoList({ playlist, onBack }) {
     );
   }
 
+  // If a video is selected, show the video player
+  if (selectedVideo) {
+    return (
+      <VideoPlayer
+        video={selectedVideo}
+        onBack={() => setSelectedVideo(null)}
+      />
+    );
+  }
+
   return (
     <div>
       <button
@@ -119,7 +131,8 @@ function VideoList({ playlist, onBack }) {
           {videos.map((video) => (
             <div
               key={video.id}
-              className="bg-gray-800 rounded-lg p-4 flex gap-4 hover:bg-gray-750 transition-colors"
+              onClick={() => setSelectedVideo(video)}
+              className="bg-gray-800 rounded-lg p-4 flex gap-4 hover:bg-gray-750 transition-colors cursor-pointer"
             >
               {video.thumbnail && (
                 <img

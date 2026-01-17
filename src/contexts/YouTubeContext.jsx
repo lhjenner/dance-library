@@ -12,7 +12,8 @@ export function useYouTube() {
 }
 
 export function YouTubeProvider({ children }) {
-  const { user } = useAuth();
+  const authContext = useAuth();
+  const user = authContext?.user;
   const [accessToken, setAccessToken] = useState(null);
   const [isYouTubeConnected, setIsYouTubeConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,32 +21,54 @@ export function YouTubeProvider({ children }) {
 
   // Initialize Google Identity Services
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      console.error('VITE_GOOGLE_CLIENT_ID is not defined');
+      setIsLoading(false);
+      return;
+    }
 
     const initTokenClient = () => {
-      const client = window.google.accounts.oauth2.initTokenClient({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/youtube',
-        prompt: 'select_account', // Force account selection
-        callback: (response) => {
-          if (response.access_token) {
-            setAccessToken(response.access_token);
-            setIsYouTubeConnected(true);
-          }
-        },
-      });
-      setTokenClient(client);
-      setIsLoading(false);
+      try {
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'https://www.googleapis.com/auth/youtube',
+          prompt: 'select_account',
+          callback: (response) => {
+            if (response.access_token) {
+              setAccessToken(response.access_token);
+              setIsYouTubeConnected(true);
+            }
+          },
+        });
+        setTokenClient(client);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error initializing token client:', error);
+        setIsLoading(false);
+      }
     };
 
-    if (window.google && window.google.accounts) {
+    if (window.google?.accounts?.oauth2) {
       initTokenClient();
     } else {
       // Wait for Google Identity Services to load
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds max
       const checkGoogle = setInterval(() => {
-        if (window.google && window.google.accounts) {
+        attempts++;
+        if (window.google?.accounts?.oauth2) {
           clearInterval(checkGoogle);
           initTokenClient();
+        } else if (attempts >= maxAttempts) {
+          clearInterval(checkGoogle);
+          console.error('Google Identity Services failed to load');
+          setIsLoading(false);
         }
       }, 100);
 
