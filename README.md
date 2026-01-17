@@ -158,7 +158,7 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - [x] Add notes field for videos
 - [x] Add untagged video indicators
 
-### Phase 5: Playlist Management ✅
+### Phase 5: Playlist Management
 - [x] Create new playlists (sync to YouTube)
 - [x] Rename playlists (sync to YouTube)
 - [x] Delete playlists (sync to YouTube)
@@ -172,9 +172,15 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - [x] Component refactoring (VideoList split into 10 files with custom hooks)
 
 ### Phase 6: Mobile Optimization
-- [ ] Responsive design for mobile devices
-- [ ] Fullscreen video on rotation
-- [ ] Touch-friendly controls
+- [x] Responsive design for mobile devices
+- [x] Touch-friendly controls with larger touch targets
+- [x] Mobile-first responsive layouts (flex-col sm:flex-row)
+- [x] Responsive text sizes and padding
+- [x] Full-width buttons on mobile where appropriate
+- [x] Mobile-optimized snackbar positioning
+- [x] Improved video title display (3 lines on mobile vs 2 on desktop)
+- [x] Landscape mode with almost-fullscreen video
+- [x] Landscape controls bar with speed controls and segment marking
 - [ ] Test on Android devices
 
 ### Phase 7: Polish & Deployment

@@ -12,13 +12,13 @@ export default function TagFilter({
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4 mb-6">
-      <h3 className="text-sm font-semibold mb-3">Filter by Tags</h3>
+    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+      <h3 className="text-sm sm:text-base font-semibold mb-3">Filter by Tags</h3>
       
       <div className="flex flex-wrap gap-2 mb-4">
         <button
           onClick={onToggleUntagged}
-          className={`px-3 py-1 rounded text-sm transition-colors ${
+          className={`px-3 py-2 sm:py-1 rounded text-sm transition-colors touch-manipulation ${
             showUntaggedOnly
               ? 'bg-orange-600 text-white'
               : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -31,7 +31,7 @@ export default function TagFilter({
           <button
             key={tag}
             onClick={() => onToggleTag(tag)}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
+            className={`px-3 py-2 sm:py-1 rounded text-sm transition-colors touch-manipulation ${
               selectedTags.includes(tag)
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -43,7 +43,7 @@ export default function TagFilter({
       </div>
 
       {(selectedTags.length > 0 || showUntaggedOnly) && (
-        <div className="text-sm text-gray-400">
+        <div className="text-xs sm:text-sm text-gray-400">
           Showing {filteredCount} of {totalCount} videos
           {selectedTags.length > 0 && ` with tags: ${selectedTags.join(', ')}`}
           {showUntaggedOnly && ' without tags'}
