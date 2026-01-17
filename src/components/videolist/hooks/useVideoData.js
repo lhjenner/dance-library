@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../../firebase/config';
-import { collection, doc, writeBatch, getDocs, query, where, collectionGroup } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs, onSnapshot, query, where, collectionGroup } from 'firebase/firestore';
 
 export function useVideoData(playlist, user, getPlaylistVideos) {
   const [videos, setVideos] = useState([]);
@@ -145,6 +145,63 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
     loadVideos();
     loadAllPlaylists();
   }, [playlist.id]);
+
+  // Set up real-time listener for segments to update tags immediately
+  useEffect(() => {
+    if (videos.length === 0) return;
+
+    // Listen to collectionGroup for all segments with userId
+    const segmentsQuery = query(
+      collectionGroup(db, 'segments'),
+      where('userId', '==', user.uid)
+    );
+
+    const unsubscribe = onSnapshot(segmentsQuery, (snapshot) => {
+      // Build segments map from snapshot
+      const segmentsMap = new Map();
+      const videoIds = videos.map(v => v.id);
+      
+      snapshot.forEach((segDoc) => {
+        const segData = segDoc.data();
+        const videoId = segDoc.ref.parent.parent.id;
+        
+        if (videoIds.includes(videoId)) {
+          if (!segmentsMap.has(videoId)) {
+            segmentsMap.set(videoId, []);
+          }
+          if (segData.tags) {
+            segmentsMap.get(videoId).push(...segData.tags);
+          }
+        }
+      });
+
+      // Update videos with new segment tags
+      setVideos(prevVideos => {
+        const updatedVideos = prevVideos.map(video => {
+          const segmentTags = segmentsMap.get(video.id) || [];
+          return {
+            ...video,
+            allTags: [...(video.tags || []), ...segmentTags]
+          };
+        });
+
+        // Update allTags
+        const tagsSet = new Set();
+        updatedVideos.forEach(video => {
+          if (video.allTags) {
+            video.allTags.forEach(tag => tagsSet.add(tag));
+          }
+        });
+        setAllTags(Array.from(tagsSet).sort());
+
+        return updatedVideos;
+      });
+    }, (error) => {
+      console.log('Segments listener error:', error.message);
+    });
+
+    return () => unsubscribe();
+  }, [videos.length, user.uid]);
 
   return {
     videos,
