@@ -19,7 +19,7 @@ export function useTagFiltering(videos) {
 
   const filteredVideos = videos.filter(video => {
     if (showUntaggedOnly) {
-      return !video.tags || video.tags.length === 0;
+      return !video.allTags || video.allTags.length === 0;
     }
     
     if (selectedTags.length > 0) {
