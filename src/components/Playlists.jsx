@@ -79,7 +79,14 @@ function Playlists() {
   const [playlists, setPlaylists] = useState([]);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState(() => {
+    // Restore selected playlist from localStorage
+    if (user) {
+      const stored = localStorage.getItem(`selected_playlist_${user.uid}`);
+      return stored ? JSON.parse(stored) : null;
+    }
+    return null;
+  });
   const [showEmptyPlaylists, setShowEmptyPlaylists] = useState(true);
 
   const sensors = useSensors(
@@ -88,6 +95,17 @@ function Playlists() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Save selected playlist to localStorage
+  useEffect(() => {
+    if (user) {
+      if (selectedPlaylist) {
+        localStorage.setItem(`selected_playlist_${user.uid}`, JSON.stringify(selectedPlaylist));
+      } else {
+        localStorage.removeItem(`selected_playlist_${user.uid}`);
+      }
+    }
+  }, [selectedPlaylist, user]);
 
   const handleConnectYouTube = async () => {
     try {

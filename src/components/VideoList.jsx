@@ -11,11 +11,32 @@ function VideoList({ playlist, onBack }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [selectedVideo, setSelectedVideo] = useState(() => {
+    // Restore selected video from localStorage
+    if (user) {
+      const stored = localStorage.getItem(`selected_video_${user.uid}`);
+      return stored ? JSON.parse(stored) : null;
+    }
+    return null;
+  });
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [showUntaggedOnly, setShowUntaggedOnly] = useState(false);
+  const [allTags, setAllTags] = useState([]);
 
   useEffect(() => {
     loadVideos();
   }, [playlist.id]);
+
+  // Save selected video to localStorage
+  useEffect(() => {
+    if (user) {
+      if (selectedVideo) {
+        localStorage.setItem(`selected_video_${user.uid}`, JSON.stringify(selectedVideo));
+      } else {
+        localStorage.removeItem(`selected_video_${user.uid}`);
+      }
+    }
+  }, [selectedVideo, user]);
 
   const loadVideos = async () => {
     try {
@@ -57,11 +78,42 @@ function VideoList({ playlist, onBack }) {
       const querySnapshot = await getDocs(q);
       
       const loadedVideos = [];
-      querySnapshot.forEach((doc) => {
-        loadedVideos.push({ id: doc.id, ...doc.data() });
-      });
+      
+      // Load videos and their segments
+      for (const videoDoc of querySnapshot.docs) {
+        const videoData = { id: videoDoc.id, ...videoDoc.data() };
+        
+        // Load segments for this video
+        const segmentsRef = collection(videoDoc.ref, 'segments');
+        const segmentsSnapshot = await getDocs(segmentsRef);
+        
+        const segmentTags = [];
+        segmentsSnapshot.forEach((segDoc) => {
+          const segData = segDoc.data();
+          if (segData.tags) {
+            segmentTags.push(...segData.tags);
+          }
+        });
+        
+        // Combine video tags and segment tags
+        videoData.allTags = [
+          ...(videoData.tags || []),
+          ...segmentTags
+        ];
+        
+        loadedVideos.push(videoData);
+      }
 
       setVideos(loadedVideos);
+
+      // Extract all unique tags from videos (including segment tags)
+      const tagsSet = new Set();
+      loadedVideos.forEach(video => {
+        if (video.allTags) {
+          video.allTags.forEach(tag => tagsSet.add(tag));
+        }
+      });
+      setAllTags(Array.from(tagsSet).sort());
     } catch (err) {
       console.error('Error loading videos:', err);
       setError('Failed to load videos. Please try again.');
@@ -69,6 +121,29 @@ function VideoList({ playlist, onBack }) {
       setLoading(false);
     }
   };
+
+  const toggleTag = (tag) => {
+    if (selectedTags.includes(tag)) {
+      setSelectedTags(selectedTags.filter(t => t !== tag));
+    } else {
+      setSelectedTags([...selectedTags, tag]);
+    }
+  };
+
+  const filteredVideos = videos.filter(video => {
+    // Filter by untagged (only checking video-level tags, not segment tags)
+    if (showUntaggedOnly) {
+      return !video.tags || video.tags.length === 0;
+    }
+    
+    // Filter by selected tags (check both video and segment tags)
+    if (selectedTags.length > 0) {
+      if (!video.allTags || video.allTags.length === 0) return false;
+      return selectedTags.some(tag => video.allTags.includes(tag));
+    }
+    
+    return true;
+  });
 
   if (loading) {
     return (
@@ -116,19 +191,71 @@ function VideoList({ playlist, onBack }) {
         <p className="text-gray-400 mt-2">{videos.length} videos</p>
       </div>
 
+      {/* Filters */}
+      {(allTags.length > 0 || videos.some(v => !v.tags || v.tags.length === 0)) && (
+        <div className="bg-gray-800 rounded-lg p-4 mb-6">
+          <h3 className="text-sm font-semibold mb-3">Filter by Tags</h3>
+          
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => {
+                setShowUntaggedOnly(!showUntaggedOnly);
+                setSelectedTags([]);
+              }}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                showUntaggedOnly
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Untagged Only
+            </button>
+            
+            {allTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => {
+                  toggleTag(tag);
+                  setShowUntaggedOnly(false);
+                }}
+                className={`px-3 py-1 rounded text-sm transition-colors ${
+                  selectedTags.includes(tag)
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+
+          {(selectedTags.length > 0 || showUntaggedOnly) && (
+            <div className="text-sm text-gray-400">
+              Showing {filteredVideos.length} of {videos.length} videos
+              {selectedTags.length > 0 && ` with tags: ${selectedTags.join(', ')}`}
+              {showUntaggedOnly && ' without tags'}
+            </div>
+          )}
+        </div>
+      )}
+
       {error && (
         <div className="bg-red-900/30 border border-red-700 text-red-400 px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
 
-      {videos.length === 0 ? (
+      {filteredVideos.length === 0 ? (
         <div className="text-center py-12 bg-gray-800 rounded-lg">
-          <p className="text-gray-400">No videos in this playlist.</p>
+          <p className="text-gray-400">
+            {videos.length === 0 
+              ? 'No videos in this playlist.'
+              : 'No videos match the selected filters.'}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {videos.map((video) => (
+          {filteredVideos.map((video) => (
             <div
               key={video.id}
               onClick={() => setSelectedVideo(video)}
@@ -142,7 +269,26 @@ function VideoList({ playlist, onBack }) {
                 />
               )}
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-lg">{video.title}</h3>
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-lg">{video.title}</h3>
+                  {(!video.allTags || video.allTags.length === 0) && (
+                    <span className="bg-orange-600 text-white text-xs px-2 py-1 rounded-full flex-shrink-0">
+                      No tags
+                    </span>
+                  )}
+                </div>
+                {video.allTags && video.allTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {[...new Set(video.allTags)].map((tag) => (
+                      <span
+                        key={tag}
+                        className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}

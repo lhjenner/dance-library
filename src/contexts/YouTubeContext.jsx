@@ -14,10 +14,36 @@ export function useYouTube() {
 export function YouTubeProvider({ children }) {
   const authContext = useAuth();
   const user = authContext?.user;
-  const [accessToken, setAccessToken] = useState(null);
-  const [isYouTubeConnected, setIsYouTubeConnected] = useState(false);
+  const [accessToken, setAccessToken] = useState(() => {
+    // Try to restore token from localStorage
+    if (user) {
+      return localStorage.getItem(`youtube_token_${user.uid}`);
+    }
+    return null;
+  });
+  const [isYouTubeConnected, setIsYouTubeConnected] = useState(() => {
+    // Check if we have a stored token
+    if (user) {
+      return !!localStorage.getItem(`youtube_token_${user.uid}`);
+    }
+    return false;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [tokenClient, setTokenClient] = useState(null);
+
+  // Restore token from localStorage when user changes
+  useEffect(() => {
+    if (user) {
+      const storedToken = localStorage.getItem(`youtube_token_${user.uid}`);
+      if (storedToken) {
+        setAccessToken(storedToken);
+        setIsYouTubeConnected(true);
+      }
+    } else {
+      setAccessToken(null);
+      setIsYouTubeConnected(false);
+    }
+  }, [user]);
 
   // Initialize Google Identity Services
   useEffect(() => {
@@ -43,6 +69,10 @@ export function YouTubeProvider({ children }) {
             if (response.access_token) {
               setAccessToken(response.access_token);
               setIsYouTubeConnected(true);
+              // Persist token to localStorage
+              if (user) {
+                localStorage.setItem(`youtube_token_${user.uid}`, response.access_token);
+              }
             }
           },
         });
@@ -86,6 +116,10 @@ export function YouTubeProvider({ children }) {
   const disconnectYouTube = () => {
     setAccessToken(null);
     setIsYouTubeConnected(false);
+    // Clear token from localStorage
+    if (user) {
+      localStorage.removeItem(`youtube_token_${user.uid}`);
+    }
   };
 
   const makeYouTubeRequest = async (endpoint, params = {}) => {
@@ -101,6 +135,12 @@ export function YouTubeProvider({ children }) {
         'Authorization': `Bearer ${accessToken}`,
       },
     });
+
+    // If token is invalid or expired, clear it and prompt reconnection
+    if (response.status === 401 || response.status === 403) {
+      disconnectYouTube();
+      throw new Error('YouTube access expired. Please reconnect.');
+    }
 
     if (!response.ok) {
       throw new Error(`YouTube API error: ${response.statusText}`);
