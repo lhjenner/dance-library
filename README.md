@@ -132,11 +132,11 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 
 ### Phase 2: YouTube Integration
 - [x] Fetch user's YouTube playlists
-- [ ] Fetch videos from playlists
+- [x] Fetch videos from playlists
 - [x] Store playlists and videos with userId in Firestore
 - [x] Display playlists in UI (sortable list with drag-and-drop)
-- [ ] Add toggle to show/hide empty playlists
-- [ ] Display videos in playlist view
+- [x] Add toggle to show/hide empty playlists
+- [x] Display videos in playlist view
 - [x] Implement playlist sync/refresh functionality (auto-sync on load)
 
 ### Phase 3: Video Player & Segmentation
