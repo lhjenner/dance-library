@@ -46,15 +46,6 @@
   //     ]
   //   },
   // ]
-  "indexes": [
-    {
-      "collectionGroup": "segments",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "__name__", "order": "ASCENDING" }
-      ]
-    }
-  ],
+  "indexes": [],
   "fieldOverrides": []
 }
