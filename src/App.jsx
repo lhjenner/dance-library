@@ -1,5 +1,6 @@
 import { useAuth } from './contexts/AuthContext'
 import Login from './components/Login'
+import Playlists from './components/Playlists'
 
 function App() {
   const { user, loading, signOut } = useAuth()
@@ -36,12 +37,7 @@ function App() {
       </nav>
       
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="text-center py-12">
-          <h2 className="text-3xl font-bold mb-4">Welcome to Dance Library! 🎉</h2>
-          <p className="text-gray-400">
-            Firebase Authentication is working. Ready to start building features!
-          </p>
-        </div>
+        <Playlists />
       </main>
     </div>
   )
