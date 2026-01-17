@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { useYouTube } from '../contexts/YouTubeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
-import { collection, doc, setDoc, getDocs, query, where } from 'firebase/firestore';
-import VideoPlayer from './VideoPlayer';
+import { collection, doc, setDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
+import VideoPlayer from './videoplayer';
 
 function VideoList({ playlist, onBack }) {
   const { user } = useAuth();
-  const { getPlaylistVideos } = useYouTube();
+  const { getPlaylistVideos, deleteVideoFromPlaylist } = useYouTube();
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -127,6 +127,37 @@ function VideoList({ playlist, onBack }) {
       setSelectedTags(selectedTags.filter(t => t !== tag));
     } else {
       setSelectedTags([...selectedTags, tag]);
+    }
+  };
+
+  const handleRemoveVideo = async (video) => {
+    if (!confirm(`Remove "${video.title}" from this playlist?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Remove from YouTube
+      await deleteVideoFromPlaylist(playlist.youtubeId, video.id);
+      
+      // Remove from Firestore
+      const videoRef = doc(db, 'videos', video.id);
+      await deleteDoc(videoRef);
+      
+      // Update local state
+      setVideos(videos.filter(v => v.id !== video.id));
+      
+      // If this was the selected video, deselect it
+      if (selectedVideo && selectedVideo.id === video.id) {
+        setSelectedVideo(null);
+      }
+    } catch (err) {
+      console.error('Error removing video:', err);
+      setError('Failed to remove video. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -258,17 +289,17 @@ function VideoList({ playlist, onBack }) {
           {filteredVideos.map((video) => (
             <div
               key={video.id}
-              onClick={() => setSelectedVideo(video)}
-              className="bg-gray-800 rounded-lg p-4 flex gap-4 hover:bg-gray-750 transition-colors cursor-pointer"
+              className="bg-gray-800 rounded-lg p-4 flex gap-4 hover:bg-gray-750 transition-colors"
             >
               {video.thumbnail && (
                 <img
                   src={video.thumbnail}
                   alt={video.title}
-                  className="w-40 h-24 object-cover rounded flex-shrink-0"
+                  className="w-40 h-24 object-cover rounded flex-shrink-0 cursor-pointer"
+                  onClick={() => setSelectedVideo(video)}
                 />
               )}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedVideo(video)}>
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-lg">{video.title}</h3>
                   {(!video.allTags || video.allTags.length === 0) && (
@@ -290,6 +321,18 @@ function VideoList({ playlist, onBack }) {
                   </div>
                 )}
               </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveVideo(video);
+                }}
+                className="text-red-400 hover:text-red-300 p-2 flex-shrink-0"
+                title="Remove from playlist"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
           ))}
         </div>

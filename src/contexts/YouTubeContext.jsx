@@ -182,6 +182,145 @@ export function YouTubeProvider({ children }) {
     return allVideos;
   };
 
+  const createPlaylist = async (title, description = '') => {
+    const url = 'https://www.googleapis.com/youtube/v3/playlists';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        snippet: {
+          title: title,
+          description: description,
+        },
+        status: {
+          privacyStatus: 'private',
+        },
+      }),
+      params: {
+        part: 'snippet,status',
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      disconnectYouTube();
+      throw new Error('YouTube access expired. Please reconnect.');
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to create playlist: ${response.statusText}`);
+    }
+
+    return response.json();
+  };
+
+  const updatePlaylist = async (playlistId, title, description) => {
+    const url = `https://www.googleapis.com/youtube/v3/playlists?part=snippet`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: playlistId,
+        snippet: {
+          title: title,
+          description: description,
+        },
+      }),
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      disconnectYouTube();
+      throw new Error('YouTube access expired. Please reconnect.');
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to update playlist: ${response.statusText}`);
+    }
+
+    return response.json();
+  };
+
+  const deletePlaylist = async (playlistId) => {
+    const url = `https://www.googleapis.com/youtube/v3/playlists?id=${playlistId}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      disconnectYouTube();
+      throw new Error('YouTube access expired. Please reconnect.');
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete playlist: ${response.statusText}`);
+    }
+
+    return true;
+  };
+
+  const deleteVideoFromPlaylist = async (playlistItemId) => {
+    const url = `https://www.googleapis.com/youtube/v3/playlistItems?id=${playlistItemId}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      disconnectYouTube();
+      throw new Error('YouTube access expired. Please reconnect.');
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to remove video: ${response.statusText}`);
+    }
+
+    return true;
+  };
+
+  const addVideoToPlaylist = async (playlistId, videoId) => {
+    const url = 'https://www.googleapis.com/youtube/v3/playlistItems';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        snippet: {
+          playlistId: playlistId,
+          resourceId: {
+            kind: 'youtube#video',
+            videoId: videoId,
+          },
+        },
+      }),
+      params: {
+        part: 'snippet',
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      disconnectYouTube();
+      throw new Error('YouTube access expired. Please reconnect.');
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to add video to playlist: ${response.statusText}`);
+    }
+
+    return response.json();
+  };
+
   const value = {
     isYouTubeConnected,
     isLoading,
@@ -189,6 +328,11 @@ export function YouTubeProvider({ children }) {
     disconnectYouTube,
     getPlaylists,
     getPlaylistVideos,
+    createPlaylist,
+    updatePlaylist,
+    deletePlaylist,
+    deleteVideoFromPlaylist,
+    addVideoToPlaylist,
   };
 
   return (

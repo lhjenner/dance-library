@@ -155,12 +155,12 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - [x] Add untagged video indicators
 
 ### Phase 5: Playlist Management
-- [ ] Create new playlists (sync to YouTube)
-- [ ] Rename playlists (sync to YouTube)
-- [ ] Delete playlists (sync to YouTube)
+- [x] Create new playlists (sync to YouTube)
+- [x] Rename playlists (sync to YouTube)
+- [x] Delete playlists (sync to YouTube)
+- [x] Remove videos from playlists
 - [ ] Move videos between playlists
 - [ ] Copy videos to multiple playlists
-- [ ] Remove videos from playlists
 
 ### Phase 6: Mobile Optimization
 - [ ] Responsive design for mobile devices
