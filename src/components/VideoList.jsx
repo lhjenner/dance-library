@@ -129,10 +129,7 @@ function VideoList({ playlist, onBack }) {
                 />
               )}
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-lg mb-1 line-clamp-2">{video.title}</h3>
-                <p className="text-gray-400 text-sm line-clamp-2">
-                  {video.description || 'No description'}
-                </p>
+                <h3 className="font-semibold text-lg">{video.title}</h3>
               </div>
             </div>
           ))}
