@@ -113,6 +113,7 @@ export default function useVideoSegments(videoId, userId) {
       const newSegmentRef = doc(segmentsRef);
       
       const segmentData = {
+        userId: userId,
         startTime: startTime,
         endTime: endTime,
         tags: [],
