@@ -139,99 +139,88 @@ export default function VideoPlayer({ video, onBack }) {
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Landscape Mode - Almost fullscreen with controls below video */}
-      {isLandscape ? (
-        <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
-          {/* Video Player - Takes most of the screen */}
-          <div className="flex-1 relative bg-black">
-            <div ref={playerRef} className="w-full h-full"></div>
-          </div>
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className={`flex items-center gap-2 text-gray-400 hover:text-white transition-colors touch-manipulation ${
+          isLandscape ? 'fixed top-2 left-2 z-[60] bg-gray-800 p-2 rounded-lg' : 'mb-4 sm:mb-6'
+        }`}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        {!isLandscape && 'Back to Videos'}
+      </button>
 
-          {/* Controls Bar - Below video */}
-          <div className="bg-gray-800 p-2 flex items-center gap-4">
-            {/* Back button */}
-            <button
-              onClick={onBack}
-              className="text-gray-400 hover:text-white transition-colors touch-manipulation p-2"
-              title="Back to Videos"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-
-            {/* Speed Controls - Left side */}
-            <div className="flex gap-1">
-              {[0.25, 0.5, 0.75, 1].map(speed => (
-                <button
-                  key={speed}
-                  onClick={() => handleSpeedChange(speed)}
-                  className={`px-3 py-2 rounded transition-colors touch-manipulation text-sm ${
-                    playbackSpeed === speed
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {speed}x
-                </button>
-              ))}
-            </div>
-
-            {/* Spacer */}
-            <div className="flex-1"></div>
-
-            {/* Segment Controls - Right side */}
-            <button
-              onClick={() => handleSetStart(currentTime)}
-              disabled={!player}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-4 py-2 rounded transition-colors touch-manipulation text-sm"
-            >
-              Set Start
-            </button>
-            
-            <button
-              onClick={() => handleSetEnd(currentTime)}
-              disabled={!player || currentSegment.start === null}
-              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white px-4 py-2 rounded transition-colors touch-manipulation text-sm"
-            >
-              Set End
-            </button>
-          </div>
-        </div>
-      ) : (
-        /* Normal Portrait/Desktop Layout */
-        <>
-          {/* Back button */}
-          <button
-            onClick={onBack}
-            className="mb-4 sm:mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors touch-manipulation"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Videos
-          </button>
-
-      {/* Video Title */}
-      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">{video.title}</h2>
+      {/* Video Title - hidden in landscape */}
+      {!isLandscape && (
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">{video.title}</h2>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Video Player */}
-        <div className="lg:col-span-2">
-          <div className="bg-gray-800 rounded-lg overflow-hidden mb-4 relative">
-            <div ref={playerRef} className="w-full aspect-video"></div>
+        {/* Video Player - Goes fullscreen in landscape */}
+        <div className={`lg:col-span-2 ${isLandscape ? 'fixed inset-0 z-50 bg-gray-900' : ''}`}>
+          <div className={`${isLandscape ? 'h-full flex flex-col' : 'bg-gray-800 rounded-lg overflow-hidden mb-4 relative'}`}>
+            {/* Player container */}
+            <div className={`${isLandscape ? 'flex-1 bg-black' : ''} relative`}>
+              <div ref={playerRef} className={isLandscape ? 'w-full h-full' : 'w-full aspect-video'}></div>
+            </div>
+
+            {/* Landscape controls bar */}
+            {isLandscape && (
+              <div className="bg-gray-800 p-2 flex items-center gap-2 sm:gap-4">
+                {/* Speed Controls */}
+                <div className="flex gap-1">
+                  {[0.25, 0.5, 0.75, 1].map(speed => (
+                    <button
+                      key={speed}
+                      onClick={() => handleSpeedChange(speed)}
+                      className={`px-2 sm:px-3 py-2 rounded transition-colors touch-manipulation text-xs sm:text-sm ${
+                        playbackSpeed === speed
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {speed}x
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex-1"></div>
+
+                {/* Segment Controls */}
+                <button
+                  onClick={() => handleSetStart(currentTime)}
+                  disabled={!player}
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-2 sm:px-4 py-2 rounded transition-colors touch-manipulation text-xs sm:text-sm whitespace-nowrap"
+                >
+                  Set Start
+                </button>
+                
+                <button
+                  onClick={() => handleSetEnd(currentTime)}
+                  disabled={!player || currentSegment.start === null}
+                  className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white px-2 sm:px-4 py-2 rounded transition-colors touch-manipulation text-xs sm:text-sm whitespace-nowrap"
+                >
+                  Set End
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Playback Controls */}
-          <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 sm:mb-4">
-              <button
-                onClick={handlePlayPause}
-                disabled={!player}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-3 sm:py-2 rounded-lg transition-colors w-full sm:w-auto touch-manipulation text-base sm:text-sm"
-              >
-                {isPlaying ? 'Pause' : 'Play'}
-              </button>
+          {/* Portrait mode controls - hidden in landscape */}
+          {!isLandscape && (
+            <>
+              {/* Playback Controls */}
+              <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 sm:mb-4">
+                  <button
+                    onClick={handlePlayPause}
+                    disabled={!player}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-3 sm:py-2 rounded-lg transition-colors w-full sm:w-auto touch-manipulation text-base sm:text-sm"
+                  >
+                    {isPlaying ? 'Pause' : 'Play'}
+                  </button>
               
               <div className="text-gray-400 text-sm sm:text-base">
                 {formatTime(currentTime)} / {formatTime(duration)}
@@ -376,40 +365,42 @@ export default function VideoPlayer({ video, onBack }) {
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
 
-        {/* Segments List */}
-        <div className="lg:col-span-1">
-          <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
-            <h3 className="text-base sm:text-lg font-semibold mb-4">
-              Segments ({segments.length})
-            </h3>
+        {/* Segments List - Hidden in landscape */}
+        {!isLandscape && (
+          <div className="lg:col-span-1">
+            <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
+              <h3 className="text-base sm:text-lg font-semibold mb-4">
+                Segments ({segments.length})
+              </h3>
 
-            {segments.length === 0 ? (
-              <p className="text-gray-400 text-sm">
-                No segments yet. Mark segments using the controls above.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {segments.map((segment, index) => (
-                  <SegmentItem
-                    key={segment.id}
-                    segment={segment}
-                    index={index}
-                    onDelete={() => handleDeleteSegment(segment.id)}
-                    onPlay={() => handlePlaySegment(segment)}
-                    onAddTag={(tag) => handleAddSegmentTag(segment.id, tag)}
-                    onRemoveTag={(tag) => handleRemoveSegmentTag(segment.id, tag)}
-                    formatTime={formatTime}
-                  />
-                ))}
-              </div>
-            )}
+              {segments.length === 0 ? (
+                <p className="text-gray-400 text-sm">
+                  No segments yet. Mark segments using the controls above.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {segments.map((segment, index) => (
+                    <SegmentItem
+                      key={segment.id}
+                      segment={segment}
+                      index={index}
+                      onDelete={() => handleDeleteSegment(segment.id)}
+                      onPlay={() => handlePlaySegment(segment)}
+                      onAddTag={(tag) => handleAddSegmentTag(segment.id, tag)}
+                      onRemoveTag={(tag) => handleRemoveSegmentTag(segment.id, tag)}
+                      formatTime={formatTime}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
-      </>
-      )}
     </div>
   );
 }
