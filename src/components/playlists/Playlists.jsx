@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useYouTube } from '../contexts/YouTubeContext';
-import { useAuth } from '../contexts/AuthContext';
-import { db } from '../firebase/config';
-import { collection, doc, setDoc, getDocs, query, where, updateDoc } from 'firebase/firestore';
+import { useYouTube } from '../../contexts/YouTubeContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { db } from '../../firebase/config';
+import { collection, doc, setDoc, getDocs, query, where, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import {
   DndContext,
   closestCenter,
@@ -15,67 +15,15 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import VideoList from './VideoList';
-
-function SortablePlaylistItem({ playlist, onClick }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: playlist.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const handleClick = (e) => {
-    // Don't trigger click if dragging
-    if (isDragging) return;
-    // Don't trigger click if clicking the drag handle
-    if (e.target.closest('[data-drag-handle]')) return;
-    onClick();
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      onClick={handleClick}
-      className="bg-gray-800 rounded-lg px-4 py-3 flex items-center gap-4 hover:bg-gray-750 transition-colors cursor-pointer"
-    >
-      <button
-        {...attributes}
-        {...listeners}
-        data-drag-handle
-        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-white"
-        aria-label="Drag to reorder"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-        </svg>
-      </button>
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-lg truncate">{playlist.title}</h3>
-        <p className="text-gray-400 text-sm">
-          {playlist.videoCount} video{playlist.videoCount !== 1 ? 's' : ''}
-        </p>
-      </div>
-    </div>
-  );
-}
+import VideoList from '../videolist/VideoList';
+import SortablePlaylistItem from './SortablePlaylistItem';
+import CreatePlaylistModal from './CreatePlaylistModal';
 
 function Playlists() {
   const { user } = useAuth();
-  const { isYouTubeConnected, connectYouTube, getPlaylists, isLoading } = useYouTube();
+  const { isYouTubeConnected, connectYouTube, getPlaylists, isLoading, createPlaylist, updatePlaylist, deletePlaylist } = useYouTube();
   const [playlists, setPlaylists] = useState([]);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
@@ -88,6 +36,10 @@ function Playlists() {
     return null;
   });
   const [showEmptyPlaylists, setShowEmptyPlaylists] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
+  const [editingPlaylist, setEditingPlaylist] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -158,8 +110,7 @@ function Playlists() {
         await setDoc(doc(playlistsRef, playlist.id), playlistData);
       }
       
-      // Fetch from Firestore to display
-      await loadPlaylists();
+      // onSnapshot will automatically update the UI
     } catch (err) {
       setError('Failed to sync playlists. Please try again.');
       console.error(err);
@@ -187,6 +138,30 @@ function Playlists() {
       console.error('Error loading playlists:', err);
     }
   };
+
+  // Set up real-time listener for playlists
+  useEffect(() => {
+    if (!isYouTubeConnected || !user) return;
+
+    const playlistsRef = collection(db, 'playlists');
+    const q = query(playlistsRef, where('userId', '==', user.uid));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const loadedPlaylists = [];
+      querySnapshot.forEach((doc) => {
+        loadedPlaylists.push({ id: doc.id, ...doc.data() });
+      });
+      
+      // Sort by order field
+      loadedPlaylists.sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+      setPlaylists(loadedPlaylists);
+    }, (err) => {
+      console.error('Error listening to playlists:', err);
+    });
+
+    return () => unsubscribe();
+  }, [isYouTubeConnected, user]);
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
@@ -218,9 +193,102 @@ function Playlists() {
     }
   };
 
+  const handleCreatePlaylist = async () => {
+    if (!newPlaylistTitle.trim()) return;
+
+    try {
+      setSyncing(true);
+      setError(null);
+
+      // Create playlist on YouTube
+      const result = await createPlaylist(newPlaylistTitle);
+      
+      // Save to Firestore
+      const playlistsRef = collection(db, 'playlists');
+      const playlistData = {
+        id: result.id,
+        userId: user.uid,
+        youtubeId: result.id,
+        title: result.snippet.title,
+        description: result.snippet.description || '',
+        thumbnail: '',
+        videoCount: 0,
+        lastSynced: new Date(),
+        order: playlists.length,
+      };
+      
+      await setDoc(doc(playlistsRef, result.id), playlistData);
+      
+      // onSnapshot will automatically update the UI
+      setNewPlaylistTitle('');
+      setShowCreateModal(false);
+    } catch (err) {
+      setError('Failed to create playlist. Please try again.');
+      console.error(err);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleRenamePlaylist = async (playlistId) => {
+    if (!editTitle.trim()) return;
+
+    try {
+      setSyncing(true);
+      setError(null);
+
+      const playlist = playlists.find(p => p.id === playlistId);
+      
+      // Update on YouTube
+      await updatePlaylist(playlistId, editTitle, playlist.description || '');
+      
+      // Update in Firestore
+      const playlistRef = doc(db, 'playlists', playlistId);
+      await updateDoc(playlistRef, { title: editTitle });
+      
+      // Update local state
+      setPlaylists(playlists.map(p => 
+        p.id === playlistId ? { ...p, title: editTitle } : p
+      ));
+      
+      setEditingPlaylist(null);
+      setEditTitle('');
+    } catch (err) {
+      setError('Failed to rename playlist. Please try again.');
+      console.error(err);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleDeletePlaylist = async (playlistId) => {
+    if (!confirm('Are you sure you want to delete this playlist? This will remove it from YouTube.')) {
+      return;
+    }
+
+    try {
+      setSyncing(true);
+      setError(null);
+
+      // Delete from YouTube
+      await deletePlaylist(playlistId);
+      
+      // Delete from Firestore
+      const playlistRef = doc(db, 'playlists', playlistId);
+      await deleteDoc(playlistRef);
+      
+      // Remove from local state
+      setPlaylists(playlists.filter(p => p.id !== playlistId));
+    } catch (err) {
+      setError('Failed to delete playlist. Please try again.');
+      console.error(err);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   useEffect(() => {
     if (isYouTubeConnected && user) {
-      loadPlaylists();
       // Auto-sync on load
       syncPlaylists();
     }
@@ -278,6 +346,18 @@ function Playlists() {
 
   return (
     <div>
+      <CreatePlaylistModal
+        isOpen={showCreateModal}
+        title={newPlaylistTitle}
+        onTitleChange={setNewPlaylistTitle}
+        onCreate={handleCreatePlaylist}
+        onCancel={() => {
+          setShowCreateModal(false);
+          setNewPlaylistTitle('');
+        }}
+        isCreating={syncing}
+      />
+
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Your Playlists</h2>
         <div className="flex items-center gap-4">
@@ -290,6 +370,12 @@ function Playlists() {
             />
             <span className="text-gray-300">Show empty playlists</span>
           </label>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
+          >
+            Create Playlist
+          </button>
           <button
             onClick={syncPlaylists}
             disabled={syncing}
@@ -331,6 +417,15 @@ function Playlists() {
                     key={playlist.id}
                     playlist={playlist}
                     onClick={() => setSelectedPlaylist(playlist)}
+                    onRename={() => {
+                      setEditingPlaylist(playlist.id);
+                      setEditTitle(playlist.title);
+                    }}
+                    onDelete={() => handleDeletePlaylist(playlist.id)}
+                    isEditing={editingPlaylist === playlist.id}
+                    editTitle={editTitle}
+                    setEditTitle={setEditTitle}
+                    onSaveRename={() => handleRenamePlaylist(playlist.id)}
                   />
                 ))}
               </div>

@@ -9,11 +9,15 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 ## Features
 
 ### Playlist Management
-- **Sync YouTube Playlists** - Connect and sync your YouTube playlists
+- **Sync YouTube Playlists** - Connect and sync your YouTube playlists with real-time updates
 - **Auto-refresh** - Automatically detect new videos added to playlists
+- **Drag-and-Drop Reordering** - Rearrange playlist order with intuitive drag-and-drop
 - **Hide Empty Playlists** - Empty playlists hidden by default with toggle to show/hide
 - **Create/Rename/Delete** - Full playlist management that syncs with YouTube
-- **Move/Copy Videos** - Organize videos between playlists with independent empty playlist toggle
+- **Move Videos** - Move videos between playlists with automatic count updates
+- **Copy Videos** - Copy videos to multiple playlists simultaneously
+- **Remove Videos** - Delete videos from playlists with confirmation modal
+- **Visual Feedback** - Auto-dismissing snackbar notifications for all operations
 - **Newest First** - Videos sorted with newest at the top
 - **Untagged Indicators** - Visual badges showing videos without tags
 
@@ -45,12 +49,12 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 
 ### Backend & Database
 - **Firebase Authentication** - User authentication and management
-- **Firebase Firestore** - NoSQL database for video metadata, tags, and segments
+- **Firebase Firestore** - NoSQL database with real-time listeners for instant updates
 - **Firebase Hosting** - Static site hosting
 
 ### APIs
-- **YouTube Data API v3** - Fetch playlists, videos, and manage YouTube content
-- **OAuth 2.0** - Google authentication for YouTube API access
+- **YouTube Data API v3** - Full playlist and video management (create, read, update, delete)
+- **OAuth 2.0** - Google authentication for YouTube API access with management scope
 
 ## Architecture
 
@@ -154,13 +158,18 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - [x] Add notes field for videos
 - [x] Add untagged video indicators
 
-### Phase 5: Playlist Management
-- [ ] Create new playlists (sync to YouTube)
-- [ ] Rename playlists (sync to YouTube)
-- [ ] Delete playlists (sync to YouTube)
-- [ ] Move videos between playlists
-- [ ] Copy videos to multiple playlists
-- [ ] Remove videos from playlists
+### Phase 5: Playlist Management ✅
+- [x] Create new playlists (sync to YouTube)
+- [x] Rename playlists (sync to YouTube)
+- [x] Delete playlists (sync to YouTube)
+- [x] Remove videos from playlists
+- [x] Move videos between playlists
+- [x] Copy videos to multiple playlists
+- [x] Real-time playlist updates with Firestore onSnapshot
+- [x] Video count tracking with automatic updates
+- [x] Custom modal dialogs for confirmations
+- [x] Snackbar notifications for operation feedback
+- [x] Component refactoring (VideoList split into 10 files with custom hooks)
 
 ### Phase 6: Mobile Optimization
 - [ ] Responsive design for mobile devices
@@ -169,11 +178,50 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - [ ] Test on Android devices
 
 ### Phase 7: Polish & Deployment
-- [ ] Error handling and loading states
+- [x] Error handling and loading states
 - [ ] Optimize performance
 - [ ] Add user preferences persistence
 - [ ] Deploy to Firebase Hosting
 - [ ] Documentation and user guide
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── playlists/
+│   │   ├── Playlists.jsx (420 lines)
+│   │   ├── SortablePlaylistItem.jsx
+│   │   ├── CreatePlaylistModal.jsx
+│   │   └── index.js
+│   ├── videolist/
+│   │   ├── VideoList.jsx (280 lines)
+│   │   ├── VideoListHeader.jsx
+│   │   ├── VideoCard.jsx
+│   │   ├── TagFilter.jsx
+│   │   ├── MoveVideoModal.jsx
+│   │   ├── CopyVideoModal.jsx
+│   │   ├── DeleteVideoModal.jsx
+│   │   ├── Snackbar.jsx
+│   │   ├── hooks/
+│   │   │   ├── useVideoData.js
+│   │   │   ├── useVideoOperations.js
+│   │   │   └── useTagFiltering.js
+│   │   └── index.js
+│   ├── videoplayer/
+│   │   ├── VideoPlayer.jsx (325 lines)
+│   │   ├── SegmentItem.jsx
+│   │   ├── useYouTubePlayer.js
+│   │   ├── useVideoSegments.js
+│   │   └── index.js
+│   └── Login.jsx
+├── contexts/
+│   ├── AuthContext.jsx
+│   └── YouTubeContext.jsx (341 lines)
+├── firebase/
+│   └── config.js
+└── App.jsx
+```
 
 ## Getting Started
 

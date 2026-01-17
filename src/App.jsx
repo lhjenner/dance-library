@@ -1,6 +1,6 @@
 import { useAuth } from './contexts/AuthContext'
 import Login from './components/Login'
-import Playlists from './components/Playlists'
+import Playlists from './components/playlists'
 
 function App() {
   const { user, loading, signOut } = useAuth()
