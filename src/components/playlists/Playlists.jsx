@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useYouTube } from '../../contexts/YouTubeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePreferences } from '../../contexts/PreferencesContext';
 import { db } from '../../firebase/config';
 import { collection, doc, setDoc, getDocs, query, where, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import {
@@ -23,19 +24,25 @@ import CreatePlaylistModal from './CreatePlaylistModal';
 
 function Playlists() {
   const { user } = useAuth();
+  const { preferences, updatePreference } = usePreferences();
   const { isYouTubeConnected, connectYouTube, getPlaylists, isLoading, createPlaylist, updatePlaylist, deletePlaylist } = useYouTube();
   const [playlists, setPlaylists] = useState([]);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedPlaylist, setSelectedPlaylist] = useState(() => {
-    // Restore selected playlist from localStorage
-    if (user) {
-      const stored = localStorage.getItem(`selected_playlist_${user.uid}`);
-      return stored ? JSON.parse(stored) : null;
-    }
-    return null;
-  });
-  const [showEmptyPlaylists, setShowEmptyPlaylists] = useState(true);
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
+  const [showEmptyPlaylists, setShowEmptyPlaylists] = useState(preferences.showEmptyPlaylists);
+
+  // Sync showEmptyPlaylists with preferences
+  useEffect(() => {
+    setShowEmptyPlaylists(preferences.showEmptyPlaylists);
+  }, [preferences.showEmptyPlaylists]);
+
+  // Save showEmptyPlaylists to preferences when toggled
+  const handleToggleEmptyPlaylists = () => {
+    const newValue = !showEmptyPlaylists;
+    setShowEmptyPlaylists(newValue);
+    updatePreference('showEmptyPlaylists', newValue);
+  };
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
   const [editingPlaylist, setEditingPlaylist] = useState(null);
@@ -48,16 +55,22 @@ function Playlists() {
     })
   );
 
-  // Save selected playlist to localStorage
+  // Load last accessed playlist from preferences
   useEffect(() => {
-    if (user) {
-      if (selectedPlaylist) {
-        localStorage.setItem(`selected_playlist_${user.uid}`, JSON.stringify(selectedPlaylist));
-      } else {
-        localStorage.removeItem(`selected_playlist_${user.uid}`);
+    if (preferences.lastAccessedPlaylistId && playlists.length > 0 && !selectedPlaylist) {
+      const lastPlaylist = playlists.find(p => p.id === preferences.lastAccessedPlaylistId);
+      if (lastPlaylist) {
+        setSelectedPlaylist(lastPlaylist);
       }
     }
-  }, [selectedPlaylist, user]);
+  }, [playlists, preferences.lastAccessedPlaylistId]);
+
+  // Save selected playlist to preferences
+  useEffect(() => {
+    if (selectedPlaylist) {
+      updatePreference('lastAccessedPlaylistId', selectedPlaylist.id);
+    }
+  }, [selectedPlaylist]);
 
   const handleConnectYouTube = async () => {
     try {
@@ -365,7 +378,7 @@ function Playlists() {
             <input
               type="checkbox"
               checked={showEmptyPlaylists}
-              onChange={(e) => setShowEmptyPlaylists(e.target.checked)}
+              onChange={handleToggleEmptyPlaylists}
               className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
             />
             <span className="text-gray-300 whitespace-nowrap">Show empty</span>

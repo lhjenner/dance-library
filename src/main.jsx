@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext.jsx'
 import { YouTubeProvider } from './contexts/YouTubeContext.jsx'
+import { PreferencesProvider } from './contexts/PreferencesContext.jsx'
 
 // Load Google Identity Services script
 const script = document.createElement('script');
@@ -16,7 +17,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
       <YouTubeProvider>
-        <App />
+        <PreferencesProvider>
+          <App />
+        </PreferencesProvider>
       </YouTubeProvider>
     </AuthProvider>
   </StrictMode>,

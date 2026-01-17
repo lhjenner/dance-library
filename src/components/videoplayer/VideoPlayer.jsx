@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePreferences } from '../../contexts/PreferencesContext';
 import { db } from '../../firebase/config';
 import { collection, doc, getDocs, query, where, updateDoc } from 'firebase/firestore';
 import useYouTubePlayer from './useYouTubePlayer';
@@ -8,6 +9,7 @@ import SegmentItem from './SegmentItem';
 
 export default function VideoPlayer({ video, onBack }) {
   const { user } = useAuth();
+  const { preferences, updatePreference } = usePreferences();
   const [videoTags, setVideoTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   const [notes, setNotes] = useState('');
@@ -25,9 +27,15 @@ export default function VideoPlayer({ video, onBack }) {
     playbackSpeed,
     loading,
     handlePlayPause,
-    handleSpeedChange,
+    handleSpeedChange: originalHandleSpeedChange,
     handlePlaySegment,
-  } = useYouTubePlayer(video.youtubeId);
+  } = useYouTubePlayer(video.youtubeId, preferences.defaultPlaybackSpeed);
+
+  // Wrap speed change to save to preferences
+  const handleSpeedChange = (speed) => {
+    originalHandleSpeedChange(speed);
+    updatePreference('defaultPlaybackSpeed', speed);
+  };
 
   const {
     segments,
