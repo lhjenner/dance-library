@@ -26,7 +26,7 @@ export default function VideoCard({
       )}
       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onClick(video)}>
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-base sm:text-lg line-clamp-2">{video.title}</h3>
+          <h3 className="font-semibold text-sm sm:text-lg line-clamp-3 sm:line-clamp-2">{video.title}</h3>
           {(!video.allTags || video.allTags.length === 0) && (
             <span className="bg-orange-600 text-white text-xs px-2 py-1 rounded-full flex-shrink-0 whitespace-nowrap">
               No tags
