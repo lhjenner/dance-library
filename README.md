@@ -148,11 +148,11 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - [x] Implement segment playback
 
 ### Phase 4: Tagging & Search
-- [ ] Add/edit/delete video-level tags
-- [ ] Add/edit/delete segment-level tags
-- [ ] Implement tag filtering
-- [ ] Add notes field for videos
-- [ ] Add untagged video indicators
+- [x] Add/edit/delete video-level tags
+- [x] Add/edit/delete segment-level tags
+- [x] Implement tag filtering
+- [x] Add notes field for videos
+- [x] Add untagged video indicators
 
 ### Phase 5: Playlist Management
 - [ ] Create new playlists (sync to YouTube)

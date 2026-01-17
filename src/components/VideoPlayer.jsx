@@ -3,6 +3,73 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
 import { collection, doc, setDoc, getDocs, query, where, deleteDoc, updateDoc } from 'firebase/firestore';
 
+// Segment Item Component
+function SegmentItem({ segment, index, onDelete, onPlay, onAddTag, onRemoveTag, formatTime }) {
+  const [tagInput, setTagInput] = useState('');
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      onAddTag(tagInput);
+      setTagInput('');
+    }
+  };
+
+  return (
+    <div className="bg-gray-700 rounded p-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-semibold">Segment {index + 1}</span>
+        <button
+          onClick={onDelete}
+          className="text-red-400 hover:text-red-300 text-sm"
+        >
+          Delete
+        </button>
+      </div>
+      
+      <div className="text-sm text-gray-300 mb-2">
+        {formatTime(segment.startTime)} → {formatTime(segment.endTime)}
+      </div>
+
+      {/* Segment Tags */}
+      {segment.tags && segment.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {segment.tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 bg-purple-600 text-white px-2 py-0.5 rounded text-xs"
+            >
+              {tag}
+              <button
+                onClick={() => onRemoveTag(tag)}
+                className="hover:text-red-300"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <input
+        type="text"
+        placeholder="Add tag..."
+        value={tagInput}
+        onChange={(e) => setTagInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        className="w-full bg-gray-600 text-white text-xs px-2 py-1 rounded mb-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
+      />
+
+      <button
+        onClick={onPlay}
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded transition-colors"
+      >
+        Play Segment
+      </button>
+    </div>
+  );
+}
+
 // Load YouTube IFrame API
 const loadYouTubeAPI = () => {
   return new Promise((resolve) => {
@@ -35,6 +102,9 @@ export default function VideoPlayer({ video, onBack }) {
   const [currentSegment, setCurrentSegment] = useState({ start: null, end: null });
   const [manualStart, setManualStart] = useState('');
   const [manualEnd, setManualEnd] = useState('');
+  const [videoTags, setVideoTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(true);
   const playerRef = useRef(null);
   const timeUpdateInterval = useRef(null);
@@ -127,6 +197,26 @@ export default function VideoPlayer({ video, onBack }) {
     };
 
     loadSegments();
+  }, [video.id, user.uid]);
+
+  // Load video tags and notes from Firestore
+  useEffect(() => {
+    const loadVideoData = async () => {
+      try {
+        const videoDoc = doc(db, 'videos', video.id);
+        const videoSnapshot = await getDocs(query(collection(db, 'videos'), where('__name__', '==', video.id)));
+        
+        if (!videoSnapshot.empty) {
+          const videoData = videoSnapshot.docs[0].data();
+          setVideoTags(videoData.tags || []);
+          setNotes(videoData.notes || '');
+        }
+      } catch (err) {
+        console.error('Error loading video data:', err);
+      }
+    };
+
+    loadVideoData();
   }, [video.id, user.uid]);
 
   const formatTime = (seconds) => {
@@ -227,6 +317,8 @@ export default function VideoPlayer({ video, onBack }) {
       const segmentData = {
         startTime: startTime,
         endTime: endTime,
+        tags: [],
+        notes: '',
         createdAt: new Date(),
       };
       
@@ -242,6 +334,96 @@ export default function VideoPlayer({ video, onBack }) {
     } catch (err) {
       console.error('Error saving segment:', err);
       alert('Failed to save segment');
+    }
+  };
+
+  const handleAddSegmentTag = async (segmentId, tag) => {
+    const segment = segments.find(s => s.id === segmentId);
+    if (!segment) return;
+
+    const newTag = tag.trim().toLowerCase();
+    if (!newTag || (segment.tags || []).includes(newTag)) return;
+
+    const updatedTags = [...(segment.tags || []), newTag];
+    
+    try {
+      const videoDoc = doc(db, 'videos', video.id);
+      const segmentRef = doc(videoDoc, 'segments', segmentId);
+      await updateDoc(segmentRef, { tags: updatedTags });
+      
+      setSegments(segments.map(s => 
+        s.id === segmentId ? { ...s, tags: updatedTags } : s
+      ));
+    } catch (err) {
+      console.error('Error adding segment tag:', err);
+      alert('Failed to add segment tag');
+    }
+  };
+
+  const handleRemoveSegmentTag = async (segmentId, tagToRemove) => {
+    const segment = segments.find(s => s.id === segmentId);
+    if (!segment) return;
+
+    const updatedTags = (segment.tags || []).filter(tag => tag !== tagToRemove);
+    
+    try {
+      const videoDoc = doc(db, 'videos', video.id);
+      const segmentRef = doc(videoDoc, 'segments', segmentId);
+      await updateDoc(segmentRef, { tags: updatedTags });
+      
+      setSegments(segments.map(s => 
+        s.id === segmentId ? { ...s, tags: updatedTags } : s
+      ));
+    } catch (err) {
+      console.error('Error removing segment tag:', err);
+      alert('Failed to remove segment tag');
+    }
+  };
+
+  const handleAddTag = async (e) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      const newTag = tagInput.trim().toLowerCase();
+      
+      if (videoTags.includes(newTag)) {
+        setTagInput('');
+        return;
+      }
+
+      const updatedTags = [...videoTags, newTag];
+      
+      try {
+        const videoRef = doc(db, 'videos', video.id);
+        await updateDoc(videoRef, { tags: updatedTags });
+        setVideoTags(updatedTags);
+        setTagInput('');
+      } catch (err) {
+        console.error('Error adding tag:', err);
+        alert('Failed to add tag');
+      }
+    }
+  };
+
+  const handleRemoveTag = async (tagToRemove) => {
+    const updatedTags = videoTags.filter(tag => tag !== tagToRemove);
+    
+    try {
+      const videoRef = doc(db, 'videos', video.id);
+      await updateDoc(videoRef, { tags: updatedTags });
+      setVideoTags(updatedTags);
+    } catch (err) {
+      console.error('Error removing tag:', err);
+      alert('Failed to remove tag');
+    }
+  };
+
+  const handleSaveNotes = async () => {
+    try {
+      const videoRef = doc(db, 'videos', video.id);
+      await updateDoc(videoRef, { notes: notes });
+    } catch (err) {
+      console.error('Error saving notes:', err);
+      alert('Failed to save notes');
     }
   };
 
@@ -398,6 +580,59 @@ export default function VideoPlayer({ video, onBack }) {
               </div>
             </div>
           </div>
+
+          {/* Tags and Notes */}
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-4">Tags & Notes</h3>
+            
+            {/* Video Tags */}
+            <div className="mb-6">
+              <div className="text-sm text-gray-400 mb-2">Video Tags</div>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {videoTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
+                  >
+                    {tag}
+                    <button
+                      onClick={() => handleRemoveTag(tag)}
+                      className="hover:text-red-300 ml-1"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <input
+                type="text"
+                placeholder="Add a tag (press Enter)"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleAddTag}
+                className="w-full bg-gray-700 text-white px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                e.g., "whip", "lindy hop", "advanced"
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <div className="text-sm text-gray-400 mb-2">Notes</div>
+              <textarea
+                placeholder="Add notes about this video..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                onBlur={handleSaveNotes}
+                className="w-full bg-gray-700 text-white px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={4}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Notes save automatically when you click away
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Segments List */}
@@ -412,31 +647,18 @@ export default function VideoPlayer({ video, onBack }) {
                 No segments yet. Mark segments using the controls on the left.
               </p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {segments.map((segment, index) => (
-                  <div
+                  <SegmentItem
                     key={segment.id}
-                    className="bg-gray-700 rounded p-3"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold">Segment {index + 1}</span>
-                      <button
-                        onClick={() => handleDeleteSegment(segment.id)}
-                        className="text-red-400 hover:text-red-300 text-sm"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                    <div className="text-sm text-gray-300 mb-2">
-                      {formatTime(segment.startTime)} → {formatTime(segment.endTime)}
-                    </div>
-                    <button
-                      onClick={() => handlePlaySegment(segment)}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded transition-colors"
-                    >
-                      Play Segment
-                    </button>
-                  </div>
+                    segment={segment}
+                    index={index}
+                    onDelete={() => handleDeleteSegment(segment.id)}
+                    onPlay={() => handlePlaySegment(segment)}
+                    onAddTag={(tag) => handleAddSegmentTag(segment.id, tag)}
+                    onRemoveTag={(tag) => handleRemoveSegmentTag(segment.id, tag)}
+                    formatTime={formatTime}
+                  />
                 ))}
               </div>
             )}
