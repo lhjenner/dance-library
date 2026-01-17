@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../../firebase/config';
-import { collection, doc, setDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs, query, where, collectionGroup } from 'firebase/firestore';
 
 export function useVideoData(playlist, user, getPlaylistVideos) {
   const [videos, setVideos] = useState([]);
@@ -15,10 +15,12 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
       setError(null);
 
       const youtubeVideos = await getPlaylistVideos(playlist.youtubeId);
+      
+      // Use batched writes for better performance
+      const batch = writeBatch(db);
       const videosRef = collection(db, 'videos');
       
-      for (let i = 0; i < youtubeVideos.length; i++) {
-        const video = youtubeVideos[i];
+      youtubeVideos.forEach((video) => {
         const videoData = {
           id: video.snippet.resourceId.videoId,
           userId: user.uid,
@@ -35,30 +37,71 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
           notes: '',
         };
         
-        await setDoc(doc(videosRef, video.snippet.resourceId.videoId), videoData, { merge: true });
-      }
+        batch.set(doc(videosRef, video.snippet.resourceId.videoId), videoData, { merge: true });
+      });
+      
+      // Commit all video writes at once
+      await batch.commit();
 
       const q = query(videosRef, where('userId', '==', user.uid), where('playlistId', '==', playlist.id));
       const querySnapshot = await getDocs(q);
       
-      const loadedVideos = [];
-      for (const videoDoc of querySnapshot.docs) {
-        const videoData = { id: videoDoc.id, ...videoDoc.data() };
-        
-        const segmentsRef = collection(videoDoc.ref, 'segments');
-        const segmentsSnapshot = await getDocs(segmentsRef);
-        
-        const segmentTags = [];
-        segmentsSnapshot.forEach((segDoc) => {
-          const segData = segDoc.data();
-          if (segData.tags) {
-            segmentTags.push(...segData.tags);
+      // Get all video IDs for segment query
+      const videoIds = querySnapshot.docs.map(doc => doc.id);
+      
+      // Fetch segments - use collectionGroup if available, fallback to individual queries
+      const segmentsMap = new Map();
+      if (videoIds.length > 0) {
+        try {
+          // Try collectionGroup query (requires index - faster)
+          const segmentsQuery = query(
+            collectionGroup(db, 'segments'),
+            where('userId', '==', user.uid)
+          );
+          const segmentsSnapshot = await getDocs(segmentsQuery);
+          
+          segmentsSnapshot.forEach((segDoc) => {
+            const segData = segDoc.data();
+            const videoId = segDoc.ref.parent.parent.id;
+            
+            if (videoIds.includes(videoId)) {
+              if (!segmentsMap.has(videoId)) {
+                segmentsMap.set(videoId, []);
+              }
+              if (segData.tags) {
+                segmentsMap.get(videoId).push(...segData.tags);
+              }
+            }
+          });
+        } catch (error) {
+          // If collectionGroup fails (index not ready), fetch segments per video
+          console.log('CollectionGroup not ready, using fallback:', error.message);
+          for (const videoDoc of querySnapshot.docs) {
+            const segmentsRef = collection(videoDoc.ref, 'segments');
+            const segmentsSnapshot = await getDocs(segmentsRef);
+            
+            const segmentTags = [];
+            segmentsSnapshot.forEach((segDoc) => {
+              const segData = segDoc.data();
+              if (segData.tags) {
+                segmentTags.push(...segData.tags);
+              }
+            });
+            
+            if (segmentTags.length > 0) {
+              segmentsMap.set(videoDoc.id, segmentTags);
+            }
           }
-        });
-        
-        videoData.allTags = [...(videoData.tags || []), ...segmentTags];
-        loadedVideos.push(videoData);
+        }
       }
+      
+      // Build video objects with all tags
+      const loadedVideos = querySnapshot.docs.map((videoDoc) => {
+        const videoData = { id: videoDoc.id, ...videoDoc.data() };
+        const segmentTags = segmentsMap.get(videoDoc.id) || [];
+        videoData.allTags = [...(videoData.tags || []), ...segmentTags];
+        return videoData;
+      });
 
       setVideos(loadedVideos);
 

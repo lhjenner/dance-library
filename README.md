@@ -1,6 +1,11 @@
 # Dance Library
 
-A dance move library that utilises YouTube.
+A YouTube playlist manager designed for dancers to organize, segment, and practice from their video collections.
+
+## 📚 Documentation
+
+- **[User Guide](USER_GUIDE.md)** - Complete guide for using all features
+- **[Setup Guide](SETUP.md)** - Developer setup and deployment instructions
 
 ## Overview
 
@@ -185,10 +190,10 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 
 ### Phase 7: Polish & Deployment
 - [x] Error handling and loading states
-- [ ] Optimize performance
-- [ ] Add user preferences persistence
-- [ ] Deploy to Firebase Hosting
-- [ ] Documentation and user guide
+- [x] Optimize performance (batched writes, collectionGroup queries)
+- [x] Add user preferences persistence (playback speed, empty playlists, last playlist)
+- [x] Deploy to Firebase Hosting
+- [x] Documentation and user guide
 
 ## Project Structure
 
@@ -231,14 +236,66 @@ src/
 
 ## Getting Started
 
-### Prerequisites
-- Node.js (v18+)
-- Firebase account
-- Google Cloud Console account (for YouTube API)
-- YouTube API OAuth 2.0 credentials
+### For Users
 
-### Setup Instructions
-(Coming soon)
+Ready to organize your dance videos? Check out the **[User Guide](USER_GUIDE.md)** for:
+- Getting started with YouTube sync
+- Managing playlists and videos
+- Marking segments and adding tags
+- Mobile features and tips
+
+### For Developers
+
+Want to run or contribute to the project? See the **[Setup Guide](SETUP.md)** for:
+- Complete installation instructions
+- Firebase and YouTube API configuration
+- Development workflow
+- Deployment steps
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/lhjenner/dance-library.git
+cd dance-library
+
+# Install dependencies
+npm install
+
+# Set up environment variables (see SETUP.md)
+cp .env.example .env
+# Edit .env with your Firebase and YouTube API credentials
+
+# Run development server
+npm run dev
+```
+
+Visit [http://localhost:5173](http://localhost:5173) to see the app.
+
+## Built With
+
+- **React 19.2** - UI framework
+- **Vite 7.2** - Build tool with Rolldown
+- **Tailwind CSS 4.1** - Styling
+- **Firebase** - Authentication, Firestore, Hosting
+- **YouTube Data API v3** - Playlist management
+- **@dnd-kit** - Drag and drop functionality
+
+## License
+
+Private project - not licensed for public use.
+
+## Project Status
+
+✅ **Complete** - All 7 phases implemented and deployed!
+
+- Phase 1: ✅ Project Setup & Authentication
+- Phase 2: ✅ YouTube Integration
+- Phase 3: ✅ Video Player & Segmentation
+- Phase 4: ✅ Tagging & Search
+- Phase 5: ✅ Playlist Management
+- Phase 6: ✅ Mobile Optimization
+- Phase 7: ✅ Polish & Deployment
 
 ## License
 

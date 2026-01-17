@@ -21,12 +21,12 @@ const loadYouTubeAPI = () => {
   });
 };
 
-export default function useYouTubePlayer(videoId) {
+export default function useYouTubePlayer(videoId, defaultSpeed = 1) {
   const [player, setPlayer] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [playbackSpeed, setPlaybackSpeed] = useState(defaultSpeed);
   const [loading, setLoading] = useState(true);
   const playerRef = useRef(null);
   const timeUpdateInterval = useRef(null);

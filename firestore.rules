@@ -34,6 +34,12 @@ service cloud.firestore {
       }
     }
     
+    // Collection group query for segments (used for performance optimization)
+    match /{path=**}/segments/{segmentId} {
+      allow read: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid;
+    }
+    
     // User preferences: users can only access their own preferences
     match /userPreferences/{userId} {
       allow read, write: if isOwner(userId);
