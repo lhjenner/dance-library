@@ -140,12 +140,12 @@ Dance Library is a YouTube playlist manager on steroids, designed for dancers wh
 - [x] Implement playlist sync/refresh functionality (auto-sync on load)
 
 ### Phase 3: Video Player & Segmentation
-- [ ] Embed YouTube IFrame Player
-- [ ] Implement playback speed controls
-- [ ] Add segment marking controls (click-based)
-- [ ] Add manual timestamp input
-- [ ] Display and manage segment list
-- [ ] Implement segment playback
+- [x] Embed YouTube IFrame Player
+- [x] Implement playback speed controls
+- [x] Add segment marking controls (click-based)
+- [x] Add manual timestamp input
+- [x] Display and manage segment list
+- [x] Implement segment playback
 
 ### Phase 4: Tagging & Search
 - [ ] Add/edit/delete video-level tags
