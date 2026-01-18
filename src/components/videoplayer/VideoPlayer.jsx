@@ -217,11 +217,11 @@ export default function VideoPlayer({ video, onBack }) {
               <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4">
                 {/* Mobile compact layout */}
                 <div className="sm:hidden">
-                  <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2 mb-3">
                     <button
                       onClick={handlePlayPause}
                       disabled={!player}
-                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors touch-manipulation flex-1"
+                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors touch-manipulation flex-[2]"
                     >
                       {isPlaying ? 'Pause' : 'Play'}
                     </button>
@@ -229,11 +229,11 @@ export default function VideoPlayer({ video, onBack }) {
                     {/* Collapsible speed selector */}
                     <button
                       onClick={() => setShowSpeedOptions(!showSpeedOptions)}
-                      className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors touch-manipulation flex items-center gap-2"
+                      className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-3 rounded-lg transition-colors touch-manipulation flex-1 flex items-center justify-center gap-1"
                     >
-                      <span>{playbackSpeed}x</span>
+                      <span className="text-sm">{playbackSpeed}x</span>
                       <svg 
-                        className={`w-4 h-4 transition-transform ${showSpeedOptions ? 'rotate-180' : ''}`} 
+                        className={`w-3 h-3 transition-transform ${showSpeedOptions ? 'rotate-180' : ''}`} 
                         fill="none" 
                         stroke="currentColor" 
                         viewBox="0 0 24 24"
@@ -241,6 +241,11 @@ export default function VideoPlayer({ video, onBack }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
+                    
+                    {/* Time display */}
+                    <div className="text-gray-400 text-xs flex-1 text-center">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </div>
                   </div>
                   
                   {/* Expanded speed options */}
@@ -260,10 +265,6 @@ export default function VideoPlayer({ video, onBack }) {
                       ))}
                     </div>
                   )}
-                  
-                  <div className="text-gray-400 text-sm text-center">
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </div>
                 </div>
 
                 {/* Desktop layout - unchanged */}
