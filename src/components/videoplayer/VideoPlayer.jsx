@@ -133,14 +133,16 @@ export default function VideoPlayer({ video, onBack }) {
       <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Video Player - Goes fullscreen in landscape */}
         <div className={`lg:col-span-2 ${isLandscape ? 'fixed inset-0 z-50 bg-gray-900' : ''}`}>
-          <div className={`${isLandscape ? 'h-full flex flex-col' : 'bg-gray-800 rounded-lg overflow-hidden mb-4 relative'}`}>
-            {/* Player container */}
-            <div className={`${isLandscape ? 'flex-1 bg-black' : ''} relative`}>
-              <div ref={playerRef} className={isLandscape ? 'w-full h-full' : 'w-full aspect-video'}></div>
-            </div>
-
-            {/* Landscape controls bar */}
-            {isLandscape && (
+          {isLandscape ? (
+            <>
+              {/* Video area - calc height minus controls */}
+              <div className="flex items-center justify-center bg-black" style={{ height: 'calc(100dvh - 52px)' }}>
+                <div className="h-full aspect-video">
+                  <div ref={playerRef} className="w-full h-full"></div>
+                </div>
+              </div>
+              
+              {/* Controls bar - fixed height */}
               <LandscapeControls
                 player={player}
                 isPlaying={isPlaying}
@@ -157,12 +159,12 @@ export default function VideoPlayer({ video, onBack }) {
                 onSetEnd={handleSetEnd}
                 currentSegmentStart={currentSegment.start}
               />
-            )}
-          </div>
-
-          {/* Portrait mode controls - hidden in landscape */}
-          {!isLandscape && (
+            </>
+          ) : (
             <>
+              <div className="bg-gray-800 rounded-lg overflow-hidden mb-4 relative">
+                <div ref={playerRef} className="w-full aspect-video"></div>
+              </div>
               <PortraitControls
                 player={player}
                 isPlaying={isPlaying}
