@@ -17,14 +17,37 @@ export function YouTubeProvider({ children }) {
   const [accessToken, setAccessToken] = useState(() => {
     // Try to restore token from localStorage
     if (user) {
-      return localStorage.getItem(`youtube_token_${user.uid}`);
+      const tokenData = localStorage.getItem(`youtube_token_${user.uid}`);
+      if (tokenData) {
+        try {
+          const { token, expiresAt } = JSON.parse(tokenData);
+          // Check if token is still valid
+          if (Date.now() < expiresAt) {
+            return token;
+          }
+          // Token expired, clear it
+          localStorage.removeItem(`youtube_token_${user.uid}`);
+        } catch (e) {
+          // Old format without expiry, clear it
+          localStorage.removeItem(`youtube_token_${user.uid}`);
+        }
+      }
     }
     return null;
   });
+  const [tokenExpiresAt, setTokenExpiresAt] = useState(null);
   const [isYouTubeConnected, setIsYouTubeConnected] = useState(() => {
-    // Check if we have a stored token
+    // Check if we have a valid stored token
     if (user) {
-      return !!localStorage.getItem(`youtube_token_${user.uid}`);
+      const tokenData = localStorage.getItem(`youtube_token_${user.uid}`);
+      if (tokenData) {
+        try {
+          const { expiresAt } = JSON.parse(tokenData);
+          return Date.now() < expiresAt;
+        } catch (e) {
+          return false;
+        }
+      }
     }
     return false;
   });
@@ -34,13 +57,32 @@ export function YouTubeProvider({ children }) {
   // Restore token from localStorage when user changes
   useEffect(() => {
     if (user) {
-      const storedToken = localStorage.getItem(`youtube_token_${user.uid}`);
-      if (storedToken) {
-        setAccessToken(storedToken);
-        setIsYouTubeConnected(true);
+      const tokenData = localStorage.getItem(`youtube_token_${user.uid}`);
+      if (tokenData) {
+        try {
+          const { token, expiresAt } = JSON.parse(tokenData);
+          if (Date.now() < expiresAt) {
+            setAccessToken(token);
+            setTokenExpiresAt(expiresAt);
+            setIsYouTubeConnected(true);
+          } else {
+            // Token expired, clear it
+            localStorage.removeItem(`youtube_token_${user.uid}`);
+            setAccessToken(null);
+            setTokenExpiresAt(null);
+            setIsYouTubeConnected(false);
+          }
+        } catch (e) {
+          // Invalid format, clear it
+          localStorage.removeItem(`youtube_token_${user.uid}`);
+          setAccessToken(null);
+          setTokenExpiresAt(null);
+          setIsYouTubeConnected(false);
+        }
       }
     } else {
       setAccessToken(null);
+      setTokenExpiresAt(null);
       setIsYouTubeConnected(false);
     }
   }, [user]);
@@ -69,9 +111,16 @@ export function YouTubeProvider({ children }) {
             if (response.access_token) {
               setAccessToken(response.access_token);
               setIsYouTubeConnected(true);
-              // Persist token to localStorage
+              // Calculate expiry time (tokens typically expire in 3600 seconds)
+              const expiresIn = response.expires_in || 3600;
+              const expiresAt = Date.now() + (expiresIn * 1000);
+              setTokenExpiresAt(expiresAt);
+              // Persist token with expiry to localStorage
               if (user) {
-                localStorage.setItem(`youtube_token_${user.uid}`, response.access_token);
+                localStorage.setItem(`youtube_token_${user.uid}`, JSON.stringify({
+                  token: response.access_token,
+                  expiresAt
+                }));
               }
             }
           },
@@ -115,6 +164,7 @@ export function YouTubeProvider({ children }) {
 
   const disconnectYouTube = () => {
     setAccessToken(null);
+    setTokenExpiresAt(null);
     setIsYouTubeConnected(false);
     // Clear token from localStorage
     if (user) {
@@ -122,10 +172,51 @@ export function YouTubeProvider({ children }) {
     }
   };
 
-  const makeYouTubeRequest = async (endpoint, params = {}) => {
+  // Check if token needs refresh
+  const ensureValidToken = async () => {
     if (!accessToken) {
       throw new Error('YouTube not connected');
     }
+    
+    // Check if token is expired or will expire in the next 5 minutes
+    const fiveMinutes = 5 * 60 * 1000;
+    if (tokenExpiresAt && Date.now() >= (tokenExpiresAt - fiveMinutes)) {
+      // Token expired or about to expire, request new one
+      if (!tokenClient) {
+        throw new Error('Cannot refresh token: token client not initialized');
+      }
+      // Request new token silently
+      return new Promise((resolve, reject) => {
+        const originalCallback = tokenClient.callback;
+        tokenClient.callback = (response) => {
+          if (response.access_token) {
+            const expiresIn = response.expires_in || 3600;
+            const expiresAt = Date.now() + (expiresIn * 1000);
+            setAccessToken(response.access_token);
+            setTokenExpiresAt(expiresAt);
+            setIsYouTubeConnected(true);
+            if (user) {
+              localStorage.setItem(`youtube_token_${user.uid}`, JSON.stringify({
+                token: response.access_token,
+                expiresAt
+              }));
+            }
+            tokenClient.callback = originalCallback;
+            resolve();
+          } else {
+            tokenClient.callback = originalCallback;
+            disconnectYouTube();
+            reject(new Error('Failed to refresh token'));
+          }
+        };
+        tokenClient.requestAccessToken({ prompt: '' });
+      });
+    }
+  };
+
+  const makeYouTubeRequest = async (endpoint, params = {}) => {
+    // Ensure we have a valid token before making the request
+    await ensureValidToken();
 
     const url = new URL(`https://www.googleapis.com/youtube/v3/${endpoint}`);
     Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
