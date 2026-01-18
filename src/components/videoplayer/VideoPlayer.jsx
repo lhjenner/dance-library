@@ -373,13 +373,84 @@ export default function VideoPlayer({ video, onBack }) {
               <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4">
                 {/* Mobile compact layout */}
                 <div className="sm:hidden">
+                  {/* Segment selection row */}
+                  <div className="flex items-center gap-2 mb-2">
+                    {/* Segments Selector */}
+                    <div className="relative flex-1">
+                      <button
+                        onClick={() => setShowSegmentSelector(!showSegmentSelector)}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg transition-colors touch-manipulation text-sm"
+                      >
+                        Segments
+                      </button>
+                      
+                      {/* Segments flyout - positioned above */}
+                      {showSegmentSelector && (
+                        <div className="absolute bottom-full left-0 mb-1 bg-gray-800 rounded shadow-lg p-2 z-10 max-h-64 overflow-y-auto w-full min-w-[280px]">
+                          {segments.length === 0 ? (
+                            <div className="text-gray-400 text-xs p-2">No segments yet</div>
+                          ) : (
+                            <div className="space-y-1">
+                              {segments.map((segment, index) => (
+                                <button
+                                  key={segment.id}
+                                  onClick={() => handleSelectSegmentForPlayback(segment)}
+                                  className="w-full text-left bg-gray-700 hover:bg-gray-600 text-white p-2 rounded transition-colors touch-manipulation"
+                                >
+                                  <div className="text-xs font-semibold mb-1">Segment {index + 1}</div>
+                                  {segment.tags && segment.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {segment.tags.map((tag) => (
+                                        <span
+                                          key={tag}
+                                          className="inline-block bg-purple-600 text-white px-1.5 py-0.5 rounded text-xs"
+                                        >
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Clear segment selection if one is selected */}
+                    {selectedSegmentForPlayback && (
+                      <button
+                        onClick={handleClearSegmentSelection}
+                        className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors touch-manipulation text-sm"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Playback control row */}
                   <div className="flex items-center gap-2 mb-3">
+                    {/* Play from Start Button */}
                     <button
-                      onClick={handlePlayPause}
+                      onClick={handlePlayFromStart}
                       disabled={!player}
-                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors touch-manipulation flex-[2]"
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-3 py-3 rounded-lg transition-colors touch-manipulation text-sm whitespace-nowrap"
                     >
-                      {isPlaying ? 'Pause' : 'Play'}
+                      From Start
+                    </button>
+
+                    {/* Play/Pause Button - Modified when segment selected */}
+                    <button
+                      onClick={selectedSegmentForPlayback ? handleLandscapePlayPause : handlePlayPause}
+                      disabled={!player}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors touch-manipulation flex-[2] text-sm"
+                    >
+                      {selectedSegmentForPlayback ? (
+                        <>{isPlaying ? 'Pause Seg' : 'Play Seg'}</>
+                      ) : (
+                        <>{isPlaying ? 'Pause' : 'Play'}</>
+                      )}
                     </button>
                     
                     {/* Collapsible speed selector */}
@@ -397,11 +468,11 @@ export default function VideoPlayer({ video, onBack }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
-                    
-                    {/* Time display */}
-                    <div className="text-gray-400 text-xs flex-1 text-center">
-                      {formatTime(currentTime)} / {formatTime(duration)}
-                    </div>
+                  </div>
+
+                  {/* Time display */}
+                  <div className="text-gray-400 text-xs text-center mb-3">
+                    {formatTime(currentTime)} / {formatTime(duration)}
                   </div>
                   
                   {/* Expanded speed options */}
@@ -546,9 +617,9 @@ export default function VideoPlayer({ video, onBack }) {
           )}
         </div>
 
-        {/* Segments List - Hidden in landscape, order-1 on mobile so it appears before Tags */}
+        {/* Segments List - Hidden on mobile (portrait and landscape), shown on desktop */}
         {!isLandscape && (
-          <div className="lg:col-span-1 order-1 lg:order-none">
+          <div className="hidden lg:block lg:col-span-1 order-1 lg:order-none">
             <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
               <h3 className="text-base sm:text-lg font-semibold mb-4">
                 Segments ({segments.length})
