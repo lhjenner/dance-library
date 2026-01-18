@@ -19,7 +19,7 @@ export default function LandscapeControls({
   const [showSpeedOptions, setShowSpeedOptions] = useState(false);
   const [showSegmentSelector, setShowSegmentSelector] = useState(false);
 
-  const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
+  const speeds = [0.25, 0.5, 0.75, 1];
 
   const handleSelectSegment = (segment) => {
     onSelectSegment(segment);
