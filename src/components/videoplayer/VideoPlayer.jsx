@@ -30,13 +30,22 @@ export default function VideoPlayer({ video, onBack }) {
     loading,
     handlePlayPause,
     handleSpeedChange: originalHandleSpeedChange,
-    handlePlaySegment,
+    handlePlaySegment: originalHandlePlaySegment,
   } = useYouTubePlayer(video.youtubeId, preferences.defaultPlaybackSpeed);
 
   // Wrap speed change to save to preferences
   const handleSpeedChange = (speed) => {
     originalHandleSpeedChange(speed);
     updatePreference('defaultPlaybackSpeed', speed);
+  };
+
+  // Wrap play segment to scroll to video on mobile portrait
+  const handlePlaySegment = (segment) => {
+    originalHandlePlaySegment(segment);
+    // Only scroll on mobile portrait (not landscape, not desktop)
+    if (!isLandscape && window.innerWidth < 1024) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const {
