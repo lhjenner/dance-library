@@ -159,19 +159,16 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
     const unsubscribe = onSnapshot(segmentsQuery, (snapshot) => {
       // Build segments map from snapshot
       const segmentsMap = new Map();
-      const videoIds = videos.map(v => v.id);
       
       snapshot.forEach((segDoc) => {
         const segData = segDoc.data();
         const videoId = segDoc.ref.parent.parent.id;
         
-        if (videoIds.includes(videoId)) {
-          if (!segmentsMap.has(videoId)) {
-            segmentsMap.set(videoId, []);
-          }
-          if (segData.tags) {
-            segmentsMap.get(videoId).push(...segData.tags);
-          }
+        if (!segmentsMap.has(videoId)) {
+          segmentsMap.set(videoId, []);
+        }
+        if (segData.tags) {
+          segmentsMap.get(videoId).push(...segData.tags);
         }
       });
 
