@@ -1,6 +1,7 @@
 import { useAuth } from './contexts/AuthContext'
 import Login from './components/Login'
 import Playlists from './components/playlists'
+import TokenExpiryModal from './components/TokenExpiryModal'
 
 function App() {
   const { user, loading, signOut } = useAuth()
@@ -19,6 +20,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
+      <TokenExpiryModal />
       <nav className="bg-gray-800 border-b border-gray-700 px-4 sm:px-6 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold">Dance Library</h1>
