@@ -36,6 +36,7 @@ export function YouTubeProvider({ children }) {
     return null;
   });
   const [tokenExpiresAt, setTokenExpiresAt] = useState(null);
+  const [showTokenExpiryWarning, setShowTokenExpiryWarning] = useState(false);
   const [isYouTubeConnected, setIsYouTubeConnected] = useState(() => {
     // Check if we have a valid stored token
     if (user) {
@@ -155,6 +156,37 @@ export function YouTubeProvider({ children }) {
     }
   }, [user]);
 
+  // Monitor token expiry and show warning when needed
+  useEffect(() => {
+    if (!tokenExpiresAt || !isYouTubeConnected) {
+      setShowTokenExpiryWarning(false);
+      return;
+    }
+
+    const checkTokenExpiry = () => {
+      const fiveMinutes = 5 * 60 * 1000;
+      const timeUntilExpiry = tokenExpiresAt - Date.now();
+      
+      // If token will expire in less than 5 minutes, show warning
+      if (timeUntilExpiry <= fiveMinutes && timeUntilExpiry > 0) {
+        setShowTokenExpiryWarning(true);
+      } else if (timeUntilExpiry <= 0) {
+        // Token has expired, disconnect
+        disconnectYouTube();
+      } else {
+        setShowTokenExpiryWarning(false);
+      }
+    };
+
+    // Check immediately
+    checkTokenExpiry();
+
+    // Check every minute
+    const interval = setInterval(checkTokenExpiry, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [tokenExpiresAt, isYouTubeConnected]);
+
   const connectYouTube = async () => {
     if (!tokenClient) {
       throw new Error('Token client not initialized');
@@ -162,10 +194,19 @@ export function YouTubeProvider({ children }) {
     tokenClient.requestAccessToken();
   };
 
+  const refreshToken = async () => {
+    if (!tokenClient) {
+      throw new Error('Token client not initialized');
+    }
+    setShowTokenExpiryWarning(false);
+    tokenClient.requestAccessToken();
+  };
+
   const disconnectYouTube = () => {
     setAccessToken(null);
     setTokenExpiresAt(null);
     setIsYouTubeConnected(false);
+    setShowTokenExpiryWarning(false);
     // Clear token from localStorage
     if (user) {
       localStorage.removeItem(`youtube_token_${user.uid}`);
@@ -178,39 +219,11 @@ export function YouTubeProvider({ children }) {
       throw new Error('YouTube not connected');
     }
     
-    // Check if token is expired or will expire in the next 5 minutes
-    const fiveMinutes = 5 * 60 * 1000;
-    if (tokenExpiresAt && Date.now() >= (tokenExpiresAt - fiveMinutes)) {
-      // Token expired or about to expire, request new one
-      if (!tokenClient) {
-        throw new Error('Cannot refresh token: token client not initialized');
-      }
-      // Request new token silently
-      return new Promise((resolve, reject) => {
-        const originalCallback = tokenClient.callback;
-        tokenClient.callback = (response) => {
-          if (response.access_token) {
-            const expiresIn = response.expires_in || 3600;
-            const expiresAt = Date.now() + (expiresIn * 1000);
-            setAccessToken(response.access_token);
-            setTokenExpiresAt(expiresAt);
-            setIsYouTubeConnected(true);
-            if (user) {
-              localStorage.setItem(`youtube_token_${user.uid}`, JSON.stringify({
-                token: response.access_token,
-                expiresAt
-              }));
-            }
-            tokenClient.callback = originalCallback;
-            resolve();
-          } else {
-            tokenClient.callback = originalCallback;
-            disconnectYouTube();
-            reject(new Error('Failed to refresh token'));
-          }
-        };
-        tokenClient.requestAccessToken({ prompt: '' });
-      });
+    // Check if token has expired
+    if (tokenExpiresAt && Date.now() >= tokenExpiresAt) {
+      // Token expired, disconnect
+      disconnectYouTube();
+      throw new Error('YouTube access expired. Please reconnect.');
     }
   };
 
@@ -409,7 +422,9 @@ export function YouTubeProvider({ children }) {
   const value = {
     isYouTubeConnected,
     isLoading,
+    showTokenExpiryWarning,
     connectYouTube,
+    refreshToken,
     disconnectYouTube,
     getPlaylists,
     getPlaylistVideos,
