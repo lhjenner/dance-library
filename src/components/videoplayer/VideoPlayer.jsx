@@ -197,9 +197,9 @@ export default function VideoPlayer({ video, onBack }) {
           )}
         </div>
 
-        {/* Segments List - Hidden on mobile (portrait and landscape), shown on desktop */}
+        {/* Segments List - Hidden in landscape, shown in portrait and desktop */}
         {!isLandscape && (
-          <div className="hidden lg:block lg:col-span-1 order-1 lg:order-none">
+          <div className="lg:col-span-1 order-1 lg:order-none">
             <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
               <h3 className="text-base sm:text-lg font-semibold mb-4">
                 Segments ({segments.length})
