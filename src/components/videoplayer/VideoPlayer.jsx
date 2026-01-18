@@ -14,6 +14,7 @@ export default function VideoPlayer({ video, onBack }) {
   const [tagInput, setTagInput] = useState('');
   const [notes, setNotes] = useState('');
   const [isLandscape, setIsLandscape] = useState(false);
+  const [showSpeedOptions, setShowSpeedOptions] = useState(false);
 
   const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
 
@@ -211,42 +212,96 @@ export default function VideoPlayer({ video, onBack }) {
           {/* Portrait mode controls - hidden in landscape */}
           {!isLandscape && (
             <>
-              {/* Playback Controls */}
+              {/* Playback Controls - Compact on mobile, expanded on desktop */}
               <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 sm:mb-4">
-                  <button
-                    onClick={handlePlayPause}
-                    disabled={!player}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-3 sm:py-2 rounded-lg transition-colors w-full sm:w-auto touch-manipulation text-base sm:text-sm"
-                  >
-                    {isPlaying ? 'Pause' : 'Play'}
-                  </button>
-              
-              <div className="text-gray-400 text-sm sm:text-base">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </div>
-            </div>
+                {/* Mobile compact layout */}
+                <div className="sm:hidden">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <button
+                      onClick={handlePlayPause}
+                      disabled={!player}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors touch-manipulation flex-1"
+                    >
+                      {isPlaying ? 'Pause' : 'Play'}
+                    </button>
+                    
+                    {/* Collapsible speed selector */}
+                    <button
+                      onClick={() => setShowSpeedOptions(!showSpeedOptions)}
+                      className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors touch-manipulation flex items-center gap-2"
+                    >
+                      <span>{playbackSpeed}x</span>
+                      <svg 
+                        className={`w-4 h-4 transition-transform ${showSpeedOptions ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {/* Expanded speed options */}
+                  {showSpeedOptions && (
+                    <div className="grid grid-cols-4 gap-2 mb-3">
+                      {speeds.filter(speed => speed !== playbackSpeed).map(speed => (
+                        <button
+                          key={speed}
+                          onClick={() => {
+                            handleSpeedChange(speed);
+                            setShowSpeedOptions(false);
+                          }}
+                          className="bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-2 rounded transition-colors touch-manipulation"
+                        >
+                          {speed}x
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="text-gray-400 text-sm text-center">
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </div>
+                </div>
 
-            {/* Speed Controls */}
-            <div>
-              <div className="text-sm text-gray-400 mb-2">Playback Speed</div>
-              <div className="grid grid-cols-4 sm:flex gap-2">
-                {speeds.map(speed => (
-                  <button
-                    key={speed}
-                    onClick={() => handleSpeedChange(speed)}
-                    className={`px-3 py-2 sm:py-1 rounded transition-colors touch-manipulation ${
-                      playbackSpeed === speed
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    {speed}x
-                  </button>
-                ))}
+                {/* Desktop layout - unchanged */}
+                <div className="hidden sm:block">
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <button
+                      onClick={handlePlayPause}
+                      disabled={!player}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors touch-manipulation"
+                    >
+                      {isPlaying ? 'Pause' : 'Play'}
+                    </button>
+                
+                    <div className="text-gray-400 text-base">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </div>
+                  </div>
+
+                  {/* Speed Controls */}
+                  <div>
+                    <div className="text-sm text-gray-400 mb-2">Playback Speed</div>
+                    <div className="flex gap-2">
+                      {speeds.map(speed => (
+                        <button
+                          key={speed}
+                          onClick={() => handleSpeedChange(speed)}
+                          className={`px-3 py-1 rounded transition-colors touch-manipulation ${
+                            playbackSpeed === speed
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          }`}
+                        >
+                          {speed}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
           {/* Segment Marking */}
           <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4">
