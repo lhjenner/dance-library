@@ -180,6 +180,15 @@ export default function VideoPlayer({ video, onBack }) {
             {/* Landscape controls bar */}
             {isLandscape && (
               <div className="bg-gray-800 p-2 flex items-center gap-2 sm:gap-4">
+                {/* Play/Pause Button */}
+                <button
+                  onClick={handlePlayPause}
+                  disabled={!player}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-3 py-2 rounded transition-colors touch-manipulation text-xs sm:text-sm whitespace-nowrap"
+                >
+                  {isPlaying ? 'Pause' : 'Play'}
+                </button>
+
                 {/* Speed Controls */}
                 <div className="flex gap-1">
                   {[0.25, 0.5, 0.75, 1].map(speed => (
