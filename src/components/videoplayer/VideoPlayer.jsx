@@ -179,31 +179,50 @@ export default function VideoPlayer({ video, onBack }) {
 
             {/* Landscape controls bar */}
             {isLandscape && (
-              <div className="bg-gray-800 p-2 flex items-center gap-2 sm:gap-4">
+              <div className="bg-gray-800 p-2 flex items-center gap-2 relative">
                 {/* Play/Pause Button */}
                 <button
                   onClick={handlePlayPause}
                   disabled={!player}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-3 py-2 rounded transition-colors touch-manipulation text-xs sm:text-sm whitespace-nowrap"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-2 rounded transition-colors touch-manipulation text-xs whitespace-nowrap"
                 >
                   {isPlaying ? 'Pause' : 'Play'}
                 </button>
 
-                {/* Speed Controls */}
-                <div className="flex gap-1">
-                  {[0.25, 0.5, 0.75, 1].map(speed => (
-                    <button
-                      key={speed}
-                      onClick={() => handleSpeedChange(speed)}
-                      className={`px-2 sm:px-3 py-2 rounded transition-colors touch-manipulation text-xs sm:text-sm ${
-                        playbackSpeed === speed
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
+                {/* Collapsible Speed Control */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowSpeedOptions(!showSpeedOptions)}
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded transition-colors touch-manipulation flex items-center gap-1"
+                  >
+                    <span className="text-xs">{playbackSpeed}x</span>
+                    <svg 
+                      className={`w-3 h-3 transition-transform ${showSpeedOptions ? 'rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
                     >
-                      {speed}x
-                    </button>
-                  ))}
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Expanded speed options - positioned above */}
+                  {showSpeedOptions && (
+                    <div className="absolute bottom-full left-0 mb-1 bg-gray-800 rounded shadow-lg p-1 flex gap-1 z-10">
+                      {speeds.filter(speed => speed !== playbackSpeed).map(speed => (
+                        <button
+                          key={speed}
+                          onClick={() => {
+                            handleSpeedChange(speed);
+                            setShowSpeedOptions(false);
+                          }}
+                          className="bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-1 rounded transition-colors touch-manipulation text-xs"
+                        >
+                          {speed}x
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex-1"></div>
