@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase/config';
-import { collection, doc, getDocs, query, where, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 export default function TagsAndNotesSection({ videoId, userId }) {
   const [videoTags, setVideoTags] = useState([]);
@@ -11,11 +11,11 @@ export default function TagsAndNotesSection({ videoId, userId }) {
   useEffect(() => {
     const loadVideoData = async () => {
       try {
-        const videoDoc = doc(db, 'videos', videoId);
-        const videoSnapshot = await getDocs(query(collection(db, 'videos'), where('__name__', '==', videoId)));
+        const videoRef = doc(db, 'videos', videoId);
+        const videoSnapshot = await getDoc(videoRef);
         
-        if (!videoSnapshot.empty) {
-          const videoData = videoSnapshot.docs[0].data();
+        if (videoSnapshot.exists()) {
+          const videoData = videoSnapshot.data();
           setVideoTags(videoData.tags || []);
           setNotes(videoData.notes || '');
         }
@@ -46,7 +46,9 @@ export default function TagsAndNotesSection({ videoId, userId }) {
         setTagInput('');
       } catch (err) {
         console.error('Error adding tag:', err);
-        alert('Failed to add tag');
+        console.error('Error code:', err.code);
+        console.error('Error message:', err.message);
+        alert(`Failed to add tag: ${err.message}`);
       }
     }
   };

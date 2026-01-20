@@ -16,28 +16,38 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
 
       const youtubeVideos = await getPlaylistVideos(playlist.youtubeId);
       
+      // First, check which videos already exist in Firestore
+      const videosRef = collection(db, 'videos');
+      const existingQuery = query(videosRef, where('userId', '==', user.uid), where('playlistId', '==', playlist.id));
+      const existingSnapshot = await getDocs(existingQuery);
+      const existingVideoIds = new Set(existingSnapshot.docs.map(doc => doc.id));
+      
       // Use batched writes for better performance
       const batch = writeBatch(db);
-      const videosRef = collection(db, 'videos');
       
       youtubeVideos.forEach((video) => {
-        const videoData = {
-          id: video.snippet.resourceId.videoId,
-          userId: user.uid,
-          youtubeId: video.snippet.resourceId.videoId,
-          playlistId: playlist.id,
-          playlistItemId: video.id,
-          title: video.snippet.title,
-          description: video.snippet.description,
-          thumbnail: video.snippet.thumbnails?.medium?.url || '',
-          publishedAt: new Date(video.snippet.publishedAt),
-          addedToPlaylist: new Date(video.snippet.publishedAt),
-          tags: [],
-          segments: [],
-          notes: '',
-        };
+        const videoId = video.snippet.resourceId.videoId;
         
-        batch.set(doc(videosRef, video.snippet.resourceId.videoId), videoData, { merge: true });
+        // Only create new video documents, don't overwrite existing ones
+        if (!existingVideoIds.has(videoId)) {
+          const videoData = {
+            id: videoId,
+            userId: user.uid,
+            youtubeId: videoId,
+            playlistId: playlist.id,
+            playlistItemId: video.id,
+            title: video.snippet.title,
+            description: video.snippet.description,
+            thumbnail: video.snippet.thumbnails?.medium?.url || '',
+            publishedAt: new Date(video.snippet.publishedAt),
+            addedToPlaylist: new Date(video.snippet.publishedAt),
+            tags: [],
+            segments: [],
+            notes: '',
+          };
+          
+          batch.set(doc(videosRef, videoId), videoData);
+        }
       });
       
       // Commit all video writes at once
@@ -199,6 +209,57 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
 
     return () => unsubscribe();
   }, [videos.length, user.uid]);
+
+  // Set up real-time listener for video document changes (tags, notes, etc)
+  useEffect(() => {
+    if (!playlist.id) return;
+
+    const videosQuery = query(
+      collection(db, 'videos'),
+      where('playlists', 'array-contains', playlist.id),
+      where('userId', '==', user.uid)
+    );
+
+    const unsubscribe = onSnapshot(videosQuery, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'modified') {
+          const updatedVideo = { id: change.doc.id, ...change.doc.data() };
+          
+          setVideos(prevVideos => {
+            const videoIndex = prevVideos.findIndex(v => v.id === updatedVideo.id);
+            if (videoIndex === -1) return prevVideos;
+
+            const newVideos = [...prevVideos];
+            // Preserve existing allTags segment portion, update video tags
+            const existingSegmentTags = newVideos[videoIndex].allTags?.filter(
+              tag => !newVideos[videoIndex].tags?.includes(tag)
+            ) || [];
+            
+            newVideos[videoIndex] = {
+              ...newVideos[videoIndex],
+              ...updatedVideo,
+              allTags: [...(updatedVideo.tags || []), ...existingSegmentTags]
+            };
+
+            // Update allTags list
+            const tagsSet = new Set();
+            newVideos.forEach(video => {
+              if (video.allTags) {
+                video.allTags.forEach(tag => tagsSet.add(tag));
+              }
+            });
+            setAllTags(Array.from(tagsSet).sort());
+
+            return newVideos;
+          });
+        }
+      });
+    }, (error) => {
+      console.log('Videos listener error:', error.message);
+    });
+
+    return () => unsubscribe();
+  }, [playlist.id, user.uid]);
 
   return {
     videos,
