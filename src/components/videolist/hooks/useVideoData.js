@@ -28,8 +28,8 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
       youtubeVideos.forEach((video) => {
         const videoId = video.snippet.resourceId.videoId;
         
-        // Only create new video documents, don't overwrite existing ones
         if (!existingVideoIds.has(videoId)) {
+          // Create new video documents
           const videoData = {
             id: videoId,
             userId: user.uid,
@@ -41,12 +41,21 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
             thumbnail: video.snippet.thumbnails?.medium?.url || '',
             publishedAt: new Date(video.snippet.publishedAt),
             addedToPlaylist: new Date(video.snippet.publishedAt),
+            position: video.snippet.position || 0,
             tags: [],
             segments: [],
             notes: '',
           };
           
           batch.set(doc(videosRef, videoId), videoData);
+        } else {
+          // Update position for existing videos (preserves tags, notes, segments)
+          batch.update(doc(videosRef, videoId), {
+            position: video.snippet.position || 0,
+            title: video.snippet.title,
+            description: video.snippet.description,
+            thumbnail: video.snippet.thumbnails?.medium?.url || '',
+          });
         }
       });
       
@@ -112,6 +121,9 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
         videoData.allTags = [...(videoData.tags || []), ...segmentTags];
         return videoData;
       });
+
+      // Sort videos by playlist position
+      loadedVideos.sort((a, b) => (a.position || 0) - (b.position || 0));
 
       setVideos(loadedVideos);
 
