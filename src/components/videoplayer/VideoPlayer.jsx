@@ -94,6 +94,17 @@ export default function VideoPlayer({ video, onBack }) {
     }
   };
 
+  // Seek backward 10 seconds
+  const handleSeekBackward = () => {
+    if (player) {
+      const newTime = Math.max(0, currentTime - 10);
+      player.seekTo(newTime);
+      if (!isPlaying) {
+        player.playVideo();
+      }
+    }
+  };
+
   const {
     segments,
     currentSegment,
@@ -152,6 +163,7 @@ export default function VideoPlayer({ video, onBack }) {
                 currentTime={currentTime}
                 onPlayFromStart={handlePlayFromStart}
                 onPlayPause={selectedSegmentForPlayback ? handleLandscapePlayPause : handlePlayPause}
+                onSeekBackward={handleSeekBackward}
                 onSpeedChange={handleSpeedChange}
                 onSelectSegment={handleSelectSegmentForPlayback}
                 onClearSegment={handleClearSegmentSelection}
@@ -175,6 +187,7 @@ export default function VideoPlayer({ video, onBack }) {
                 selectedSegmentForPlayback={selectedSegmentForPlayback}
                 onPlayFromStart={handlePlayFromStart}
                 onPlayPause={selectedSegmentForPlayback ? handleLandscapePlayPause : handlePlayPause}
+                onSeekBackward={handleSeekBackward}
                 onSpeedChange={handleSpeedChange}
                 onSelectSegment={handleSelectSegmentForPlayback}
                 onClearSegment={handleClearSegmentSelection}

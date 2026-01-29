@@ -10,6 +10,7 @@ export default function PortraitControls({
   selectedSegmentForPlayback,
   onPlayFromStart,
   onPlayPause,
+  onSeekBackward,
   onSpeedChange,
   onSelectSegment,
   onClearSegment,
@@ -31,8 +32,8 @@ export default function PortraitControls({
       <div className="sm:hidden">
         {/* Segment selection row */}
         <div className="flex items-center gap-2 mb-2">
-          {/* Segments Selector */}
-          <div className="relative flex-1">
+          {/* Segments Selector - 3/4 width */}
+          <div className="relative flex-[3]">
             <button
               onClick={() => setShowSegmentSelector(!showSegmentSelector)}
               className="w-full bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg transition-colors touch-manipulation text-sm"
@@ -73,6 +74,15 @@ export default function PortraitControls({
               </div>
             )}
           </div>
+          
+          {/* Back 10s Button - 1/4 width */}
+          <button
+            onClick={onSeekBackward}
+            disabled={!player}
+            className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-2 py-2 rounded-lg transition-colors touch-manipulation text-sm whitespace-nowrap font-semibold"
+          >
+            &lt;&lt;10s
+          </button>
           
           {/* Clear segment selection if one is selected */}
           {selectedSegmentForPlayback && (
@@ -152,7 +162,7 @@ export default function PortraitControls({
 
       {/* Desktop layout */}
       <div className="hidden sm:block">
-        <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-4">
           <button
             onClick={onPlayPause}
             disabled={!player}
@@ -160,8 +170,16 @@ export default function PortraitControls({
           >
             {isPlaying ? 'Pause' : 'Play'}
           </button>
+          
+          <button
+            onClick={onSeekBackward}
+            disabled={!player}
+            className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors touch-manipulation font-semibold"
+          >
+            &lt;&lt;10s
+          </button>
       
-          <div className="text-gray-400 text-base">
+          <div className="text-gray-400 text-base ml-auto">
             {formatTime(currentTime)} / {formatTime(duration)}
           </div>
         </div>
