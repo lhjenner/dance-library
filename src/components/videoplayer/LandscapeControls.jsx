@@ -9,6 +9,7 @@ export default function LandscapeControls({
   currentTime,
   onPlayFromStart,
   onPlayPause,
+  onSeekBackward,
   onSpeedChange,
   onSelectSegment,
   onClearSegment,
@@ -35,6 +36,15 @@ export default function LandscapeControls({
         className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-4 py-2 rounded transition-colors touch-manipulation text-xs whitespace-nowrap"
       >
         Play from Start
+      </button>
+
+      {/* Back 10s Button */}
+      <button
+        onClick={onSeekBackward}
+        disabled={!player}
+        className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-3 py-2 rounded transition-colors touch-manipulation text-sm whitespace-nowrap font-semibold"
+      >
+        &lt;&lt;10s
       </button>
 
       {/* Play/Pause Button - Modified when segment selected */}
