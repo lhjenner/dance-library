@@ -253,6 +253,9 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
               allTags: [...(updatedVideo.tags || []), ...existingSegmentTags]
             };
 
+            // Sort videos by position after updating
+            newVideos.sort((a, b) => (a.position || 0) - (b.position || 0));
+
             // Update allTags list
             const tagsSet = new Set();
             newVideos.forEach(video => {
