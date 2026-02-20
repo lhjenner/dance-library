@@ -24,6 +24,7 @@ import SortableVideoCard from './SortableVideoCard';
 import MoveVideoModal from './MoveVideoModal';
 import CopyVideoModal from './CopyVideoModal';
 import DeleteVideoModal from './DeleteVideoModal';
+import PlaylistOrderErrorModal from './PlaylistOrderErrorModal';
 import Snackbar from './Snackbar';
 import { useVideoData } from './hooks/useVideoData';
 import { useVideoOperations } from './hooks/useVideoOperations';
@@ -58,6 +59,7 @@ function VideoList({ playlist, onBack }) {
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPlaylistOrderErrorModal, setShowPlaylistOrderErrorModal] = useState(false);
   const [videoToDelete, setVideoToDelete] = useState(null);
   const [selectedTargetPlaylist, setSelectedTargetPlaylist] = useState(null);
   const [selectedCopyPlaylists, setSelectedCopyPlaylists] = useState([]);
@@ -147,7 +149,15 @@ function VideoList({ playlist, onBack }) {
       setSnackbar({ message: 'Video order updated', type: 'success', isOpen: true });
     } catch (err) {
       console.error('Error reordering video:', err);
-      setSnackbar({ message: `Failed to reorder: ${err.message}`, type: 'error', isOpen: true });
+      
+      // Check if error is about playlist not being set to Manual order
+      const errorMessage = err.message.toLowerCase();
+      if (errorMessage.includes('manual') || errorMessage.includes('order') || errorMessage.includes('playlist order')) {
+        setShowPlaylistOrderErrorModal(true);
+      } else {
+        setSnackbar({ message: `Failed to reorder: ${err.message}`, type: 'error', isOpen: true });
+      }
+      
       // Revert on error
       loadVideos();
     } finally {
@@ -279,6 +289,11 @@ function VideoList({ playlist, onBack }) {
           setVideoToDelete(null);
         }}
         isDeleting={operating}
+      />
+
+      <PlaylistOrderErrorModal
+        isOpen={showPlaylistOrderErrorModal}
+        onClose={() => setShowPlaylistOrderErrorModal(false)}
       />
 
       <button
