@@ -419,6 +419,41 @@ export function YouTubeProvider({ children }) {
     return response.json();
   };
 
+  const updateVideoPosition = async (playlistItemId, playlistId, videoId, newPosition) => {
+    const url = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet';
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: playlistItemId,
+        snippet: {
+          playlistId: playlistId,
+          resourceId: {
+            kind: 'youtube#video',
+            videoId: videoId,
+          },
+          position: newPosition,
+        },
+      }),
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      disconnectYouTube();
+      throw new Error('YouTube access expired. Please reconnect.');
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error?.message || response.statusText;
+      throw new Error(`Failed to update video position: ${errorMessage}`);
+    }
+
+    return response.json();
+  };
+
   const value = {
     isYouTubeConnected,
     isLoading,
@@ -433,6 +468,7 @@ export function YouTubeProvider({ children }) {
     deletePlaylist,
     deleteVideoFromPlaylist,
     addVideoToPlaylist,
+    updateVideoPosition,
   };
 
   return (

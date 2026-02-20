@@ -49,9 +49,10 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
           
           batch.set(doc(videosRef, videoId), videoData);
         } else {
-          // Update position for existing videos (preserves tags, notes, segments)
+          // Update position and playlistItemId for existing videos (preserves tags, notes, segments)
           batch.update(doc(videosRef, videoId), {
             position: video.snippet.position || 0,
+            playlistItemId: video.id,
             title: video.snippet.title,
             description: video.snippet.description,
             thumbnail: video.snippet.thumbnails?.medium?.url || '',

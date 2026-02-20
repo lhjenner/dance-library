@@ -1,10 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useYouTube } from '../../contexts/YouTubeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { db } from '../../firebase/config';
+import { doc, updateDoc } from 'firebase/firestore';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import VideoPlayer from '../videoplayer/VideoPlayer';
 import VideoListHeader from './VideoListHeader';
 import TagFilter from './TagFilter';
-import VideoCard from './VideoCard';
+import SortableVideoCard from './SortableVideoCard';
 import MoveVideoModal from './MoveVideoModal';
 import CopyVideoModal from './CopyVideoModal';
 import DeleteVideoModal from './DeleteVideoModal';
@@ -15,7 +31,15 @@ import { useTagFiltering } from './hooks/useTagFiltering';
 
 function VideoList({ playlist, onBack }) {
   const { user } = useAuth();
-  const { getPlaylistVideos, deleteVideoFromPlaylist, addVideoToPlaylist } = useYouTube();
+  const { getPlaylistVideos, deleteVideoFromPlaylist, addVideoToPlaylist, updateVideoPosition } = useYouTube();
+  
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
   
   // Selected video state
   const [selectedVideo, setSelectedVideo] = useState(() => {
@@ -75,6 +99,61 @@ function VideoList({ playlist, onBack }) {
     toggleUntagged,
     filteredVideos,
   } = useTagFiltering(videos);
+
+  // State for reordering
+  const [isReordering, setIsReordering] = useState(false);
+
+  // Handle video drag and drop reorder
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = videos.findIndex((v) => v.id === active.id);
+    const newIndex = videos.findIndex((v) => v.id === over.id);
+
+    // Optimistically update local state
+    const newVideos = arrayMove(videos, oldIndex, newIndex);
+    const updatedVideos = newVideos.map((video, index) => ({
+      ...video,
+      position: index,
+    }));
+    setVideos(updatedVideos);
+
+    // Update YouTube and Firestore
+    setIsReordering(true);
+    try {
+      const movedVideo = videos[oldIndex];
+      
+      // Check if playlistItemId exists
+      if (!movedVideo.playlistItemId) {
+        throw new Error('Video missing playlistItemId. Please refresh the page to sync data from YouTube.');
+      }
+      
+      // Update video position on YouTube
+      await updateVideoPosition(
+        movedVideo.playlistItemId,
+        playlist.youtubeId,
+        movedVideo.youtubeId,
+        newIndex
+      );
+
+      // Update positions in Firestore for all affected videos
+      for (const video of updatedVideos) {
+        const videoRef = doc(db, 'videos', video.id);
+        await updateDoc(videoRef, { position: video.position });
+      }
+
+      setSnackbar({ message: 'Video order updated', type: 'success', isOpen: true });
+    } catch (err) {
+      console.error('Error reordering video:', err);
+      setSnackbar({ message: `Failed to reorder: ${err.message}`, type: 'error', isOpen: true });
+      // Revert on error
+      loadVideos();
+    } finally {
+      setIsReordering(false);
+    }
+  };
 
   // Persist selected video to localStorage
 
@@ -251,22 +330,33 @@ function VideoList({ playlist, onBack }) {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredVideos.map((video) => (
-            <VideoCard
-              key={video.id}
-              video={video}
-              isSelectionMode={isSelectionMode}
-              isSelected={selectedVideos.includes(video.id)}
-              onToggleSelection={toggleVideoSelection}
-              onClick={setSelectedVideo}
-              onRemove={(video) => {
-                setVideoToDelete(video);
-                setShowDeleteModal(true);
-              }}
-            />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={filteredVideos.map(v => v.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className={`space-y-3 ${isReordering ? 'opacity-50 pointer-events-none' : ''}`}>
+              {filteredVideos.map((video) => (
+                <SortableVideoCard
+                  key={video.id}
+                  video={video}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedVideos.includes(video.id)}
+                  onToggleSelection={toggleVideoSelection}
+                  onClick={setSelectedVideo}
+                  onRemove={(video) => {
+                    setVideoToDelete(video);
+                    setShowDeleteModal(true);
+                  }}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       <Snackbar
