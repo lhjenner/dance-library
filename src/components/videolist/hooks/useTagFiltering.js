@@ -24,7 +24,7 @@ export function useTagFiltering(videos) {
     
     if (selectedTags.length > 0) {
       if (!video.allTags || video.allTags.length === 0) return false;
-      return selectedTags.some(tag => video.allTags.includes(tag));
+      return selectedTags.every(tag => video.allTags.includes(tag));
     }
     
     return true;
