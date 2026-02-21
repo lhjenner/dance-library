@@ -63,6 +63,29 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
       // Commit all video writes at once
       await batch.commit();
 
+      // Delete videos that are in Firestore but not in YouTube playlist
+      const youtubeVideoIds = new Set(youtubeVideos.map(video => video.snippet.resourceId.videoId));
+      const videosToDelete = Array.from(existingVideoIds).filter(id => !youtubeVideoIds.has(id));
+      
+      if (videosToDelete.length > 0) {
+        const deleteBatch = writeBatch(db);
+        
+        // Delete segments for each video being deleted
+        for (const videoId of videosToDelete) {
+          const segmentsRef = collection(db, 'videos', videoId, 'segments');
+          const segmentsSnapshot = await getDocs(segmentsRef);
+          segmentsSnapshot.forEach(segDoc => {
+            deleteBatch.delete(segDoc.ref);
+          });
+          
+          // Delete the video document
+          deleteBatch.delete(doc(videosRef, videoId));
+        }
+        
+        await deleteBatch.commit();
+        console.log(`Deleted ${videosToDelete.length} video(s) removed from YouTube playlist`);
+      }
+
       const q = query(videosRef, where('userId', '==', user.uid), where('playlistId', '==', playlist.id));
       const querySnapshot = await getDocs(q);
       
@@ -229,7 +252,7 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
 
     const videosQuery = query(
       collection(db, 'videos'),
-      where('playlists', 'array-contains', playlist.id),
+      where('playlistId', '==', playlist.id),
       where('userId', '==', user.uid)
     );
 
