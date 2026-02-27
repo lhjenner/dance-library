@@ -162,7 +162,7 @@ export default function PortraitControls({
 
       {/* Desktop layout */}
       <div className="hidden sm:block">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={onPlayPause}
             disabled={!player}
@@ -178,21 +178,14 @@ export default function PortraitControls({
           >
             &lt;&lt;10s
           </button>
-      
-          <div className="text-gray-400 text-base ml-auto">
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </div>
-        </div>
 
-        {/* Speed Controls */}
-        <div>
-          <div className="text-sm text-gray-400 mb-2">Playback Speed</div>
+          {/* Speed Controls */}
           <div className="flex gap-2">
             {speeds.map(speed => (
               <button
                 key={speed}
                 onClick={() => onSpeedChange(speed)}
-                className={`px-3 py-1 rounded transition-colors touch-manipulation ${
+                className={`px-3 py-2 rounded transition-colors touch-manipulation ${
                   playbackSpeed === speed
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -201,6 +194,10 @@ export default function PortraitControls({
                 {speed}x
               </button>
             ))}
+          </div>
+      
+          <div className="text-gray-400 text-base ml-auto">
+            {formatTime(currentTime)} / {formatTime(duration)}
           </div>
         </div>
       </div>
