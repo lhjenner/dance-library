@@ -227,7 +227,7 @@ export default function VideoPlayer({ video, onBack }) {
                     No segments yet. Mark segments using the controls above.
                   </p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     {segments.map((segment, index) => (
                       <SegmentItem
                         key={segment.id}
