@@ -203,6 +203,49 @@ export default function PortraitControls({
               </button>
             ))}
           </div>
+
+          {/* Segments Selector */}
+          <div className="relative ml-auto">
+            <button
+              onClick={() => setShowSegmentSelector(!showSegmentSelector)}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Segments
+            </button>
+            
+            {/* Segments flyout - positioned above */}
+            {showSegmentSelector && (
+              <div className="absolute bottom-full right-0 mb-2 bg-gray-800 rounded shadow-lg p-2 z-10 max-h-64 overflow-y-auto min-w-[280px]">
+                {segments.length === 0 ? (
+                  <div className="text-gray-400 text-sm p-2">No segments yet</div>
+                ) : (
+                  <div className="space-y-1">
+                    {segments.map((segment, index) => (
+                      <button
+                        key={segment.id}
+                        onClick={() => handleSelectSegment(segment)}
+                        className="w-full text-left bg-gray-700 hover:bg-gray-600 text-white p-2 rounded transition-colors"
+                      >
+                        <div className="text-sm font-semibold mb-1">Segment {index + 1}</div>
+                        {segment.tags && segment.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {segment.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-block bg-purple-600 text-white px-1.5 py-0.5 rounded text-xs"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
