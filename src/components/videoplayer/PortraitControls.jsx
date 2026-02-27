@@ -27,7 +27,7 @@ export default function PortraitControls({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 mt-6">
+    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4 mt-6 lg:mt-0 lg:mb-0">
       {/* Mobile compact layout */}
       <div className="sm:hidden">
         {/* Segment selection row */}
@@ -162,7 +162,9 @@ export default function PortraitControls({
 
       {/* Desktop layout */}
       <div className="hidden sm:block">
-        <div className="flex items-center gap-3">
+        <h3 className="text-base sm:text-lg font-semibold mb-4">Playback Controls</h3>
+        
+        <div className="flex items-center gap-3 mb-3">
           <button
             onClick={onPlayPause}
             disabled={!player}
@@ -178,8 +180,14 @@ export default function PortraitControls({
           >
             &lt;&lt;10s
           </button>
+      
+          <div className="text-gray-400 text-base ml-auto">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </div>
+        </div>
 
-          {/* Speed Controls */}
+        {/* Speed Controls - Second Row */}
+        <div className="flex items-center gap-2">
           <div className="flex gap-2">
             {speeds.map(speed => (
               <button
@@ -194,10 +202,6 @@ export default function PortraitControls({
                 {speed}x
               </button>
             ))}
-          </div>
-      
-          <div className="text-gray-400 text-base ml-auto">
-            {formatTime(currentTime)} / {formatTime(duration)}
           </div>
         </div>
       </div>

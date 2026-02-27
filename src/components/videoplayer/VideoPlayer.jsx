@@ -178,37 +178,43 @@ export default function VideoPlayer({ video, onBack }) {
                 <div ref={playerRef} className="w-full aspect-video video-player-desktop lg:h-full" style={{ position: 'relative' }}></div>
               </div>
               
-              <PortraitControls
-                player={player}
-                isPlaying={isPlaying}
-                playbackSpeed={playbackSpeed}
-                currentTime={currentTime}
-                duration={duration}
-                segments={segments}
-                selectedSegmentForPlayback={selectedSegmentForPlayback}
-                onPlayFromStart={handlePlayFromStart}
-                onPlayPause={selectedSegmentForPlayback ? handleLandscapePlayPause : handlePlayPause}
-                onSeekBackward={handleSeekBackward}
-                onSpeedChange={handleSpeedChange}
-                onSelectSegment={handleSelectSegmentForPlayback}
-                onClearSegment={handleClearSegmentSelection}
-                formatTime={formatTime}
-              />
+              <div className="flex flex-col lg:flex-row lg:gap-6 lg:max-w-[1400px] lg:mx-auto">
+                <div className="lg:flex-1">
+                  <PortraitControls
+                    player={player}
+                    isPlaying={isPlaying}
+                    playbackSpeed={playbackSpeed}
+                    currentTime={currentTime}
+                    duration={duration}
+                    segments={segments}
+                    selectedSegmentForPlayback={selectedSegmentForPlayback}
+                    onPlayFromStart={handlePlayFromStart}
+                    onPlayPause={selectedSegmentForPlayback ? handleLandscapePlayPause : handlePlayPause}
+                    onSeekBackward={handleSeekBackward}
+                    onSpeedChange={handleSpeedChange}
+                    onSelectSegment={handleSelectSegmentForPlayback}
+                    onClearSegment={handleClearSegmentSelection}
+                    formatTime={formatTime}
+                  />
+                </div>
 
-              <SegmentMarkingSection
-                player={player}
-                currentTime={currentTime}
-                currentSegmentStart={currentSegment.start}
-                manualStart={manualStart}
-                manualEnd={manualEnd}
-                duration={duration}
-                onSetManualStart={setManualStart}
-                onSetManualEnd={setManualEnd}
-                onSetStart={handleSetStart}
-                onSetEnd={handleSetEnd}
-                onManualSegment={handleManualSegment}
-                formatTime={formatTime}
-              />
+                <div className="lg:flex-1">
+                  <SegmentMarkingSection
+                    player={player}
+                    currentTime={currentTime}
+                    currentSegmentStart={currentSegment.start}
+                    manualStart={manualStart}
+                    manualEnd={manualEnd}
+                    duration={duration}
+                    onSetManualStart={setManualStart}
+                    onSetManualEnd={setManualEnd}
+                    onSetStart={handleSetStart}
+                    onSetEnd={handleSetEnd}
+                    onManualSegment={handleManualSegment}
+                    formatTime={formatTime}
+                  />
+                </div>
+              </div>
 
               {/* Segments List - Below Mark Segment on desktop, after video on mobile */}
               <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mt-4 sm:mt-6">

@@ -17,14 +17,14 @@ export default function SegmentMarkingSection({
   const [showMarkSegment, setShowMarkSegment] = useState(() => window.innerWidth >= 640);
 
   return (
-    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4">
+    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4 lg:mb-0">
       <button
-        onClick={() => setShowMarkSegment(!showMarkSegment)}
-        className="w-full flex items-center justify-between text-base sm:text-lg font-semibold mb-0 hover:text-gray-300 transition-colors"
+        onClick={() => window.innerWidth < 1024 && setShowMarkSegment(!showMarkSegment)}
+        className="w-full flex items-center justify-between text-base sm:text-lg font-semibold mb-0 hover:text-gray-300 transition-colors lg:cursor-default lg:hover:text-white"
       >
         <h3>Mark Segment</h3>
         <svg 
-          className={`w-5 h-5 transition-transform ${showMarkSegment ? 'rotate-180' : ''}`} 
+          className={`w-5 h-5 transition-transform lg:hidden ${showMarkSegment ? 'rotate-180' : ''}`} 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -33,8 +33,7 @@ export default function SegmentMarkingSection({
         </svg>
       </button>
       
-      {showMarkSegment && (
-        <div className="mt-4">
+      <div className={`mt-4 ${showMarkSegment ? 'block' : 'hidden'} lg:block`}>
           <div className="text-sm text-gray-400 mb-2">Click to Mark</div>
           
           {/* Mobile: Stacked layout */}
@@ -146,8 +145,7 @@ export default function SegmentMarkingSection({
               Current segment start: {formatTime(currentSegmentStart)}
             </div>
           )}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
