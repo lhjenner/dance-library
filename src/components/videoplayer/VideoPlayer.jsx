@@ -122,7 +122,7 @@ export default function VideoPlayer({ video, onBack }) {
   } = useVideoSegments(video.id, user.uid);
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-[1600px] mx-auto">
       {/* Back button */}
       <button
         onClick={onBack}
@@ -143,7 +143,7 @@ export default function VideoPlayer({ video, onBack }) {
 
       <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Video Player - Goes fullscreen in landscape */}
-        <div className={`lg:col-span-2 ${isLandscape ? 'fixed inset-0 z-50 bg-gray-900' : ''}`}>
+        <div className={`lg:col-span-3 ${isLandscape ? 'fixed inset-0 z-50 bg-gray-900' : ''}`}>
           {isLandscape ? (
             <>
               {/* Video area - calc height minus controls */}
@@ -174,8 +174,8 @@ export default function VideoPlayer({ video, onBack }) {
             </>
           ) : (
             <>
-              <div className="rounded-lg overflow-hidden mb-6 relative">
-                <div ref={playerRef} className="w-full aspect-video"></div>
+              <div className="rounded-lg overflow-hidden mb-6 relative lg:max-w-[1400px] lg:mx-auto lg:h-[787px]">
+                <div ref={playerRef} className="w-full aspect-video video-player-desktop lg:h-full" style={{ position: 'relative' }}></div>
               </div>
               
               <PortraitControls

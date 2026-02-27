@@ -1,2 +1,17 @@
 @import "tailwindcss";
 
+/* Force YouTube iframes to fill their container (desktop only) */
+@media (min-width: 1024px) {
+  .video-player-desktop {
+    aspect-ratio: unset !important;
+    padding-bottom: 0 !important;
+  }
+  
+  .video-player-desktop iframe {
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+}
