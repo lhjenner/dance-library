@@ -27,7 +27,7 @@ export default function PortraitControls({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4">
+    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 mt-6">
       {/* Mobile compact layout */}
       <div className="sm:hidden">
         {/* Segment selection row */}

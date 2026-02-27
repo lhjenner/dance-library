@@ -174,9 +174,10 @@ export default function VideoPlayer({ video, onBack }) {
             </>
           ) : (
             <>
-              <div className="bg-gray-800 rounded-lg overflow-hidden mb-4 relative">
+              <div className="rounded-lg overflow-hidden mb-6 relative">
                 <div ref={playerRef} className="w-full aspect-video"></div>
               </div>
+              
               <PortraitControls
                 player={player}
                 isPlaying={isPlaying}
@@ -208,48 +209,42 @@ export default function VideoPlayer({ video, onBack }) {
                 onManualSegment={handleManualSegment}
                 formatTime={formatTime}
               />
+
+              {/* Segments List - Below Mark Segment on desktop, after video on mobile */}
+              <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mt-4 sm:mt-6">
+                <h3 className="text-base sm:text-lg font-semibold mb-4">
+                  Segments ({segments.length})
+                </h3>
+
+                {segments.length === 0 ? (
+                  <p className="text-gray-400 text-sm">
+                    No segments yet. Mark segments using the controls above.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {segments.map((segment, index) => (
+                      <SegmentItem
+                        key={segment.id}
+                        segment={segment}
+                        index={index}
+                        onDelete={() => handleDeleteSegment(segment.id)}
+                        onPlay={() => handlePlaySegment(segment)}
+                        onAddTag={(tag) => handleAddSegmentTag(segment.id, tag)}
+                        onRemoveTag={(tag) => handleRemoveSegmentTag(segment.id, tag)}
+                        formatTime={formatTime}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Tags and Notes - Below Segments */}
+              <div className="mt-4 sm:mt-6">
+                <TagsAndNotesSection videoId={video.id} userId={user.uid} />
+              </div>
             </>
           )}
         </div>
-
-        {/* Segments List - Hidden in landscape, shown in portrait and desktop */}
-        {!isLandscape && (
-          <div className="lg:col-span-1 order-1 lg:order-none">
-            <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
-              <h3 className="text-base sm:text-lg font-semibold mb-4">
-                Segments ({segments.length})
-              </h3>
-
-              {segments.length === 0 ? (
-                <p className="text-gray-400 text-sm">
-                  No segments yet. Mark segments using the controls above.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {segments.map((segment, index) => (
-                    <SegmentItem
-                      key={segment.id}
-                      segment={segment}
-                      index={index}
-                      onDelete={() => handleDeleteSegment(segment.id)}
-                      onPlay={() => handlePlaySegment(segment)}
-                      onAddTag={(tag) => handleAddSegmentTag(segment.id, tag)}
-                      onRemoveTag={(tag) => handleRemoveSegmentTag(segment.id, tag)}
-                      formatTime={formatTime}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Tags and Notes - order-2 on mobile so it appears after Segments */}
-        {!isLandscape && (
-          <div className="lg:col-span-2 order-2 lg:order-none">
-            <TagsAndNotesSection videoId={video.id} userId={user.uid} />
-          </div>
-        )}
       </div>
     </div>
   );
