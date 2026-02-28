@@ -6,6 +6,7 @@ export default function TagsAndNotesSection({ videoId, userId }) {
   const [videoTags, setVideoTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   const [notes, setNotes] = useState('');
+  const [showNotes, setShowNotes] = useState(false);
 
   // Load video tags and notes from Firestore
   useEffect(() => {
@@ -17,7 +18,12 @@ export default function TagsAndNotesSection({ videoId, userId }) {
         if (videoSnapshot.exists()) {
           const videoData = videoSnapshot.data();
           setVideoTags(videoData.tags || []);
-          setNotes(videoData.notes || '');
+          const loadedNotes = videoData.notes || '';
+          setNotes(loadedNotes);
+          // Auto-show notes section if there are existing notes
+          if (loadedNotes.trim()) {
+            setShowNotes(true);
+          }
         }
       } catch (err) {
         console.error('Error loading video data:', err);
@@ -114,18 +120,36 @@ export default function TagsAndNotesSection({ videoId, userId }) {
 
       {/* Notes */}
       <div>
-        <div className="text-sm text-gray-400 mb-2">Notes</div>
-        <textarea
-          placeholder="Add notes about this video..."
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          onBlur={handleSaveNotes}
-          className="w-full bg-gray-700 text-white px-3 py-3 sm:py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-base sm:text-sm touch-manipulation"
-          rows={4}
-        />
-        <div className="text-xs text-gray-500 mt-1">
-          Notes save automatically when you click away
-        </div>
+        <button
+          onClick={() => setShowNotes(!showNotes)}
+          className="w-full flex items-center justify-between text-sm text-gray-400 mb-2 hover:text-gray-300 transition-colors"
+        >
+          <span>Notes</span>
+          <svg 
+            className={`w-4 h-4 transition-transform ${showNotes ? 'rotate-180' : ''}`} 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        
+        {showNotes && (
+          <div className="animate-in slide-in-from-top duration-200">
+            <textarea
+              placeholder="Add notes about this video..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={handleSaveNotes}
+              className="w-full bg-gray-700 text-white px-3 py-3 sm:py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-base sm:text-sm touch-manipulation"
+              rows={4}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Notes save automatically when you click away
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

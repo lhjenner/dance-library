@@ -27,7 +27,7 @@ export default function PortraitControls({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4">
+    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4 mt-6 lg:mt-0 lg:mb-0">
       {/* Mobile compact layout */}
       <div className="sm:hidden">
         {/* Segment selection row */}
@@ -162,7 +162,9 @@ export default function PortraitControls({
 
       {/* Desktop layout */}
       <div className="hidden sm:block">
-        <div className="flex items-center gap-3 mb-4">
+        <h3 className="text-base sm:text-lg font-semibold mb-4">Playback Controls</h3>
+        
+        <div className="flex items-center gap-3 mb-3">
           <button
             onClick={onPlayPause}
             disabled={!player}
@@ -184,15 +186,14 @@ export default function PortraitControls({
           </div>
         </div>
 
-        {/* Speed Controls */}
-        <div>
-          <div className="text-sm text-gray-400 mb-2">Playback Speed</div>
+        {/* Speed Controls - Second Row */}
+        <div className="flex items-center gap-2">
           <div className="flex gap-2">
             {speeds.map(speed => (
               <button
                 key={speed}
                 onClick={() => onSpeedChange(speed)}
-                className={`px-3 py-1 rounded transition-colors touch-manipulation ${
+                className={`px-3 py-2 rounded transition-colors touch-manipulation ${
                   playbackSpeed === speed
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -201,6 +202,49 @@ export default function PortraitControls({
                 {speed}x
               </button>
             ))}
+          </div>
+
+          {/* Segments Selector */}
+          <div className="relative ml-auto">
+            <button
+              onClick={() => setShowSegmentSelector(!showSegmentSelector)}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Segments
+            </button>
+            
+            {/* Segments flyout - positioned above */}
+            {showSegmentSelector && (
+              <div className="absolute bottom-full right-0 mb-2 bg-gray-800 rounded shadow-lg p-2 z-10 max-h-64 overflow-y-auto min-w-[280px]">
+                {segments.length === 0 ? (
+                  <div className="text-gray-400 text-sm p-2">No segments yet</div>
+                ) : (
+                  <div className="space-y-1">
+                    {segments.map((segment, index) => (
+                      <button
+                        key={segment.id}
+                        onClick={() => handleSelectSegment(segment)}
+                        className="w-full text-left bg-gray-700 hover:bg-gray-600 text-white p-2 rounded transition-colors"
+                      >
+                        <div className="text-sm font-semibold mb-1">Segment {index + 1}</div>
+                        {segment.tags && segment.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {segment.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-block bg-purple-600 text-white px-1.5 py-0.5 rounded text-xs"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

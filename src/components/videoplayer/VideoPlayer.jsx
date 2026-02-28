@@ -122,7 +122,7 @@ export default function VideoPlayer({ video, onBack }) {
   } = useVideoSegments(video.id, user.uid);
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-[1600px] mx-auto">
       {/* Back button */}
       <button
         onClick={onBack}
@@ -143,7 +143,7 @@ export default function VideoPlayer({ video, onBack }) {
 
       <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Video Player - Goes fullscreen in landscape */}
-        <div className={`lg:col-span-2 ${isLandscape ? 'fixed inset-0 z-50 bg-gray-900' : ''}`}>
+        <div className={`lg:col-span-3 ${isLandscape ? 'fixed inset-0 z-50 bg-gray-900' : ''}`}>
           {isLandscape ? (
             <>
               {/* Video area - calc height minus controls */}
@@ -174,82 +174,83 @@ export default function VideoPlayer({ video, onBack }) {
             </>
           ) : (
             <>
-              <div className="bg-gray-800 rounded-lg overflow-hidden mb-4 relative">
-                <div ref={playerRef} className="w-full aspect-video"></div>
+              <div className="rounded-lg overflow-hidden mb-6 relative lg:max-w-[1400px] lg:mx-auto lg:h-[65vh]">
+                <div ref={playerRef} className="w-full aspect-video video-player-desktop lg:h-full" style={{ position: 'relative' }}></div>
               </div>
-              <PortraitControls
-                player={player}
-                isPlaying={isPlaying}
-                playbackSpeed={playbackSpeed}
-                currentTime={currentTime}
-                duration={duration}
-                segments={segments}
-                selectedSegmentForPlayback={selectedSegmentForPlayback}
-                onPlayFromStart={handlePlayFromStart}
-                onPlayPause={selectedSegmentForPlayback ? handleLandscapePlayPause : handlePlayPause}
-                onSeekBackward={handleSeekBackward}
-                onSpeedChange={handleSpeedChange}
-                onSelectSegment={handleSelectSegmentForPlayback}
-                onClearSegment={handleClearSegmentSelection}
-                formatTime={formatTime}
-              />
+              
+              <div className="flex flex-col lg:flex-row lg:gap-6 lg:max-w-[1400px] lg:mx-auto">
+                <div className="lg:flex-1">
+                  <PortraitControls
+                    player={player}
+                    isPlaying={isPlaying}
+                    playbackSpeed={playbackSpeed}
+                    currentTime={currentTime}
+                    duration={duration}
+                    segments={segments}
+                    selectedSegmentForPlayback={selectedSegmentForPlayback}
+                    onPlayFromStart={handlePlayFromStart}
+                    onPlayPause={selectedSegmentForPlayback ? handleLandscapePlayPause : handlePlayPause}
+                    onSeekBackward={handleSeekBackward}
+                    onSpeedChange={handleSpeedChange}
+                    onSelectSegment={handleSelectSegmentForPlayback}
+                    onClearSegment={handleClearSegmentSelection}
+                    formatTime={formatTime}
+                  />
+                </div>
 
-              <SegmentMarkingSection
-                player={player}
-                currentTime={currentTime}
-                currentSegmentStart={currentSegment.start}
-                manualStart={manualStart}
-                manualEnd={manualEnd}
-                duration={duration}
-                onSetManualStart={setManualStart}
-                onSetManualEnd={setManualEnd}
-                onSetStart={handleSetStart}
-                onSetEnd={handleSetEnd}
-                onManualSegment={handleManualSegment}
-                formatTime={formatTime}
-              />
+                <div className="lg:flex-1">
+                  <SegmentMarkingSection
+                    player={player}
+                    currentTime={currentTime}
+                    currentSegmentStart={currentSegment.start}
+                    manualStart={manualStart}
+                    manualEnd={manualEnd}
+                    duration={duration}
+                    onSetManualStart={setManualStart}
+                    onSetManualEnd={setManualEnd}
+                    onSetStart={handleSetStart}
+                    onSetEnd={handleSetEnd}
+                    onManualSegment={handleManualSegment}
+                    formatTime={formatTime}
+                  />
+                </div>
+              </div>
+
+              {/* Segments List - Below Mark Segment on desktop, after video on mobile */}
+              <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mt-4 sm:mt-6">
+                <h3 className="text-base sm:text-lg font-semibold mb-4">
+                  Segments ({segments.length})
+                </h3>
+
+                {segments.length === 0 ? (
+                  <p className="text-gray-400 text-sm">
+                    No segments yet. Mark segments using the controls above.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    {segments.map((segment, index) => (
+                      <SegmentItem
+                        key={segment.id}
+                        segment={segment}
+                        index={index}
+                        onDelete={() => handleDeleteSegment(segment.id)}
+                        onPlay={() => handlePlaySegment(segment)}
+                        onAddTag={(tag) => handleAddSegmentTag(segment.id, tag)}
+                        onRemoveTag={(tag) => handleRemoveSegmentTag(segment.id, tag)}
+                        formatTime={formatTime}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Tags and Notes - Below Segments */}
+              <div className="mt-4 sm:mt-6">
+                <TagsAndNotesSection videoId={video.id} userId={user.uid} />
+              </div>
             </>
           )}
         </div>
-
-        {/* Segments List - Hidden in landscape, shown in portrait and desktop */}
-        {!isLandscape && (
-          <div className="lg:col-span-1 order-1 lg:order-none">
-            <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
-              <h3 className="text-base sm:text-lg font-semibold mb-4">
-                Segments ({segments.length})
-              </h3>
-
-              {segments.length === 0 ? (
-                <p className="text-gray-400 text-sm">
-                  No segments yet. Mark segments using the controls above.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {segments.map((segment, index) => (
-                    <SegmentItem
-                      key={segment.id}
-                      segment={segment}
-                      index={index}
-                      onDelete={() => handleDeleteSegment(segment.id)}
-                      onPlay={() => handlePlaySegment(segment)}
-                      onAddTag={(tag) => handleAddSegmentTag(segment.id, tag)}
-                      onRemoveTag={(tag) => handleRemoveSegmentTag(segment.id, tag)}
-                      formatTime={formatTime}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Tags and Notes - order-2 on mobile so it appears after Segments */}
-        {!isLandscape && (
-          <div className="lg:col-span-2 order-2 lg:order-none">
-            <TagsAndNotesSection videoId={video.id} userId={user.uid} />
-          </div>
-        )}
       </div>
     </div>
   );
