@@ -174,7 +174,7 @@ export default function VideoPlayer({ video, onBack }) {
             </>
           ) : (
             <>
-              <div className="rounded-lg overflow-hidden mb-6 relative lg:max-w-[1400px] lg:mx-auto lg:h-[787px]">
+              <div className="rounded-lg overflow-hidden mb-6 relative lg:max-w-[1400px] lg:mx-auto lg:h-[65vh]">
                 <div ref={playerRef} className="w-full aspect-video video-player-desktop lg:h-full" style={{ position: 'relative' }}></div>
               </div>
               
