@@ -10,6 +10,7 @@ export default function TagFilter({
   onToggleTag, 
   onToggleUntagged,
   onToggleFilterMode,
+  onClearFilters,
   videos
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -85,6 +86,15 @@ export default function TagFilter({
         >
           Untagged Only
         </button>
+        
+        {selectedTags.length > 0 && (
+          <button
+            onClick={onClearFilters}
+            className="px-3 py-2 sm:py-1 rounded text-sm transition-colors touch-manipulation bg-red-600 text-white hover:bg-red-700"
+          >
+            Clear Filter
+          </button>
+        )}
         
         {availableTags.map(tag => (
           <button

@@ -22,6 +22,11 @@ export function useTagFiltering(videos) {
     setFilterMode(prevMode => prevMode === 'AND' ? 'OR' : 'AND');
   };
 
+  const clearFilters = () => {
+    setSelectedTags([]);
+    setShowUntaggedOnly(false);
+  };
+
   const filteredVideos = videos.filter(video => {
     if (showUntaggedOnly) {
       return !video.allTags || video.allTags.length === 0;
@@ -47,6 +52,7 @@ export function useTagFiltering(videos) {
     toggleTag,
     toggleUntagged,
     toggleFilterMode,
+    clearFilters,
     filteredVideos,
   };
 }

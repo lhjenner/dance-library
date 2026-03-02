@@ -101,6 +101,7 @@ function VideoList({ playlist, onBack }) {
     toggleTag,
     toggleUntagged,
     toggleFilterMode,
+    clearFilters,
     filteredVideos,
   } = useTagFiltering(videos);
 
@@ -332,6 +333,7 @@ function VideoList({ playlist, onBack }) {
         onToggleTag={toggleTag}
         onToggleUntagged={toggleUntagged}
         onToggleFilterMode={toggleFilterMode}
+        onClearFilters={clearFilters}
         videos={videos}
       />
 
