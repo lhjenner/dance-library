@@ -2,10 +2,12 @@ export default function TagFilter({
   allTags, 
   selectedTags, 
   showUntaggedOnly, 
+  filterMode,
   filteredCount, 
   totalCount, 
   onToggleTag, 
-  onToggleUntagged 
+  onToggleUntagged,
+  onToggleFilterMode
 }) {
   if (allTags.length === 0 && filteredCount === totalCount) {
     return null;
@@ -13,7 +15,19 @@ export default function TagFilter({
 
   return (
     <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-      <h3 className="text-sm sm:text-base font-semibold mb-3">Filter by Tags</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm sm:text-base font-semibold">Filter by Tags</h3>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Filter criteria:</span>
+          <button
+            onClick={onToggleFilterMode}
+            className="px-3 py-1 rounded text-xs font-semibold transition-colors bg-red-600 text-white hover:bg-red-700"
+            title={filterMode === 'AND' ? 'Videos must have ALL selected tags' : 'Videos must have ANY selected tag'}
+          >
+            {filterMode}
+          </button>
+        </div>
+      </div>
       
       <div className="flex flex-wrap gap-2 mb-4">
         <button
@@ -45,7 +59,11 @@ export default function TagFilter({
       {(selectedTags.length > 0 || showUntaggedOnly) && (
         <div className="text-xs sm:text-sm text-gray-400">
           Showing {filteredCount} of {totalCount} videos
-          {selectedTags.length > 0 && ` with tags: ${selectedTags.join(', ')}`}
+          {selectedTags.length > 0 && (
+            <>
+              {` with ${filterMode === 'AND' ? 'all' : 'any'} of: ${selectedTags.join(', ')}`}
+            </>
+          )}
           {showUntaggedOnly && ' without tags'}
         </div>
       )}
