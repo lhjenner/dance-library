@@ -228,15 +228,17 @@ function VideoList({ playlist, onBack }) {
   if (loading) {
     return (
       <div>
-        <button
-          onClick={onBack}
-          className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Playlists
-        </button>
+        <div className="sticky top-0 z-50 bg-gray-900 pb-4">
+          <button
+            onClick={onBack}
+            className="pt-4 mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Playlists
+          </button>
+        </div>
         <div className="text-center py-12">
           <div className="text-gray-400">Loading videos...</div>
         </div>
@@ -299,29 +301,31 @@ function VideoList({ playlist, onBack }) {
         onClose={() => setShowPlaylistOrderErrorModal(false)}
       />
 
-      <button
-        onClick={onBack}
-        className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back to Playlists
-      </button>
+      <div className="sticky top-0 z-50 bg-gray-900 pb-4">
+        <button
+          onClick={onBack}
+          className="pt-4 mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Playlists
+        </button>
 
-      <VideoListHeader
-        playlistTitle={playlist.title}
-        videoCount={videos.length}
-        selectedCount={selectedVideos.length}
-        isSelectionMode={isSelectionMode}
-        onStartSelection={() => setIsSelectionMode(true)}
-        onShowMove={() => setShowMoveModal(true)}
-        onShowCopy={() => setShowCopyModal(true)}
-        onCancel={() => {
-          setIsSelectionMode(false);
-          setSelectedVideos([]);
-        }}
-      />
+        <VideoListHeader
+          playlistTitle={playlist.title}
+          videoCount={videos.length}
+          selectedCount={selectedVideos.length}
+          isSelectionMode={isSelectionMode}
+          onStartSelection={() => setIsSelectionMode(true)}
+          onShowMove={() => setShowMoveModal(true)}
+          onShowCopy={() => setShowCopyModal(true)}
+          onCancel={() => {
+            setIsSelectionMode(false);
+            setSelectedVideos([]);
+          }}
+        />
+      </div>
 
       <TagFilter
         allTags={allTags}

@@ -123,23 +123,25 @@ export default function VideoPlayer({ video, onBack }) {
 
   return (
     <div className="max-w-[1600px] mx-auto">
-      {/* Back button */}
-      <button
-        onClick={onBack}
-        className={`flex items-center gap-2 text-gray-400 hover:text-white transition-colors touch-manipulation ${
-          isLandscape ? 'fixed top-2 left-2 z-[60] bg-gray-800 p-2 rounded-lg' : 'mb-4 sm:mb-6'
-        }`}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        {!isLandscape && 'Back to Videos'}
-      </button>
+      <div className={isLandscape ? '' : 'sticky top-0 z-50 bg-gray-900 pb-4'}>
+        {/* Back button */}
+        <button
+          onClick={onBack}
+          className={`flex items-center gap-2 text-gray-400 hover:text-white transition-colors touch-manipulation ${
+            isLandscape ? 'fixed top-2 left-2 z-[60] bg-gray-800 p-2 rounded-lg' : 'pt-4 mb-4 sm:mb-6'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          {!isLandscape && 'Back to Videos'}
+        </button>
 
-      {/* Video Title - hidden in landscape */}
-      {!isLandscape && (
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">{video.title}</h2>
-      )}
+        {/* Video Title - hidden in landscape */}
+        {!isLandscape && (
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">{video.title}</h2>
+        )}
+      </div>
 
       <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Video Player - Goes fullscreen in landscape */}
