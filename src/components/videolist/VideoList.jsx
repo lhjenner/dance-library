@@ -97,8 +97,11 @@ function VideoList({ playlist, onBack }) {
   const {
     selectedTags,
     showUntaggedOnly,
+    filterMode,
     toggleTag,
     toggleUntagged,
+    toggleFilterMode,
+    clearFilters,
     filteredVideos,
   } = useTagFiltering(videos);
 
@@ -324,10 +327,14 @@ function VideoList({ playlist, onBack }) {
         allTags={allTags}
         selectedTags={selectedTags}
         showUntaggedOnly={showUntaggedOnly}
+        filterMode={filterMode}
         filteredCount={filteredVideos.length}
         totalCount={videos.length}
         onToggleTag={toggleTag}
         onToggleUntagged={toggleUntagged}
+        onToggleFilterMode={toggleFilterMode}
+        onClearFilters={clearFilters}
+        videos={videos}
       />
 
       {error && (
