@@ -19,11 +19,11 @@ export default function TagFilter({
 
   return (
     <div className="bg-gray-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between mb-0 hover:text-gray-300 transition-colors"
-      >
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-0">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-3 hover:text-gray-300 transition-colors"
+        >
           <h3 className="text-sm sm:text-base font-semibold">Filter by Tags</h3>
           <svg 
             className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
@@ -33,21 +33,18 @@ export default function TagFilter({
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
-        </div>
+        </button>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Filter criteria:</span>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFilterMode();
-            }}
+            onClick={onToggleFilterMode}
             className="px-3 py-1 rounded text-xs font-semibold transition-colors bg-red-600 text-white hover:bg-red-700"
             title={filterMode === 'AND' ? 'Videos must have ALL selected tags' : 'Videos must have ANY selected tag'}
           >
             {filterMode}
           </button>
         </div>
-      </button>
+      </div>
 
       {isExpanded && (
         <div className="mt-4">
