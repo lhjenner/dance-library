@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 export default function TagFilter({ 
   allTags, 
@@ -9,9 +9,34 @@ export default function TagFilter({
   totalCount, 
   onToggleTag, 
   onToggleUntagged,
-  onToggleFilterMode
+  onToggleFilterMode,
+  videos
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+
+  // Calculate available tags based on current selection (AND mode only)
+  const availableTags = useMemo(() => {
+    // In OR mode or when no tags selected, show all tags
+    if (filterMode === 'OR' || selectedTags.length === 0) {
+      return allTags;
+    }
+
+    // In AND mode with selected tags, only show tags that exist on videos matching ALL selected tags
+    const matchingVideos = videos.filter(video => {
+      if (!video.allTags || video.allTags.length === 0) return false;
+      return selectedTags.every(tag => video.allTags.includes(tag));
+    });
+
+    // Collect all unique tags from matching videos
+    const tagsSet = new Set();
+    matchingVideos.forEach(video => {
+      if (video.allTags) {
+        video.allTags.forEach(tag => tagsSet.add(tag));
+      }
+    });
+
+    return Array.from(tagsSet).sort();
+  }, [allTags, selectedTags, filterMode, videos]);
 
   if (allTags.length === 0 && filteredCount === totalCount) {
     return null;
@@ -61,7 +86,7 @@ export default function TagFilter({
           Untagged Only
         </button>
         
-        {allTags.map(tag => (
+        {availableTags.map(tag => (
           <button
             key={tag}
             onClick={() => onToggleTag(tag)}

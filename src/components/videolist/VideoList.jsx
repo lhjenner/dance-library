@@ -332,6 +332,7 @@ function VideoList({ playlist, onBack }) {
         onToggleTag={toggleTag}
         onToggleUntagged={toggleUntagged}
         onToggleFilterMode={toggleFilterMode}
+        videos={videos}
       />
 
       {error && (
