@@ -55,23 +55,6 @@ function Playlists() {
     })
   );
 
-  // Load last accessed playlist from preferences
-  useEffect(() => {
-    if (preferences.lastAccessedPlaylistId && playlists.length > 0 && !selectedPlaylist) {
-      const lastPlaylist = playlists.find(p => p.id === preferences.lastAccessedPlaylistId);
-      if (lastPlaylist) {
-        setSelectedPlaylist(lastPlaylist);
-      }
-    }
-  }, [playlists, preferences.lastAccessedPlaylistId]);
-
-  // Save selected playlist to preferences
-  useEffect(() => {
-    if (selectedPlaylist) {
-      updatePreference('lastAccessedPlaylistId', selectedPlaylist.id);
-    }
-  }, [selectedPlaylist]);
-
   const handleConnectYouTube = async () => {
     try {
       setError(null);

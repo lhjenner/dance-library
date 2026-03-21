@@ -43,13 +43,7 @@ function VideoList({ playlist, onBack }) {
   );
   
   // Selected video state
-  const [selectedVideo, setSelectedVideo] = useState(() => {
-    if (user) {
-      const stored = localStorage.getItem(`selected_video_${user.uid}`);
-      return stored ? JSON.parse(stored) : null;
-    }
-    return null;
-  });
+  const [selectedVideo, setSelectedVideo] = useState(null);
 
   // Selection state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -167,19 +161,6 @@ function VideoList({ playlist, onBack }) {
       setIsReordering(false);
     }
   };
-
-  // Persist selected video to localStorage
-
-  // Persist selected video to localStorage
-  useEffect(() => {
-    if (user) {
-      if (selectedVideo) {
-        localStorage.setItem(`selected_video_${user.uid}`, JSON.stringify(selectedVideo));
-      } else {
-        localStorage.removeItem(`selected_video_${user.uid}`);
-      }
-    }
-  }, [selectedVideo, user]);
 
   const toggleVideoSelection = (videoId) => {
     if (selectedVideos.includes(videoId)) {
