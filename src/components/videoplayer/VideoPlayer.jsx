@@ -240,6 +240,7 @@ export default function VideoPlayer({ video, onBack }) {
                         onAddTag={(tag) => handleAddSegmentTag(segment.id, tag)}
                         onRemoveTag={(tag) => handleRemoveSegmentTag(segment.id, tag)}
                         formatTime={formatTime}
+                        userId={user.uid}
                       />
                     ))}
                   </div>
