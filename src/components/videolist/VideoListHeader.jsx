@@ -1,3 +1,5 @@
+import { getDisplayPlaylistName } from '../../utils/archiveHelpers';
+
 export default function VideoListHeader({ 
   playlistTitle, 
   videoCount, 
@@ -18,7 +20,7 @@ export default function VideoListHeader({
   return (
     <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold">{playlistTitle}</h2>
+        <h2 className="text-xl sm:text-2xl font-bold">{getDisplayPlaylistName(playlistTitle)}</h2>
         <p className="text-gray-400 mt-1 sm:mt-2 text-sm sm:text-base">
           {videoCount} videos
           {selectedCount > 0 && ` (${selectedCount} selected)`}

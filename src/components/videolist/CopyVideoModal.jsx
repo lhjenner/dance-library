@@ -1,3 +1,5 @@
+import { getDisplayPlaylistName } from '../../utils/archiveHelpers';
+
 export default function CopyVideoModal({ 
   isOpen, 
   selectedCount, 
@@ -30,7 +32,7 @@ export default function CopyVideoModal({
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-sm sm:text-base">{playlist.title}</div>
+                  <div className="font-semibold text-sm sm:text-base">{getDisplayPlaylistName(playlist.title)}</div>
                   <div className="text-xs sm:text-sm opacity-75">{playlist.videoCount} videos</div>
                 </div>
                 {selectedPlaylists.includes(playlist.id) && (

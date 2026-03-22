@@ -1,3 +1,5 @@
+import { getDisplayPlaylistName } from '../../utils/archiveHelpers';
+
 export default function MoveVideoModal({ 
   isOpen, 
   selectedCount, 
@@ -28,7 +30,7 @@ export default function MoveVideoModal({
                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              <div className="font-semibold text-sm sm:text-base">{playlist.title}</div>
+              <div className="font-semibold text-sm sm:text-base">{getDisplayPlaylistName(playlist.title)}</div>
               <div className="text-xs sm:text-sm opacity-75">{playlist.videoCount} videos</div>
             </button>
           ))}

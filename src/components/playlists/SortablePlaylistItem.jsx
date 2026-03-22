@@ -1,5 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { getDisplayPlaylistName } from '../../utils/archiveHelpers';
 
 export default function SortablePlaylistItem({ playlist, isArchive, archivePlaylist, onClick, onViewArchive, onRename, onDelete, isEditing, editTitle, setEditTitle, onSaveRename }) {
   const {
@@ -67,7 +68,7 @@ export default function SortablePlaylistItem({ playlist, isArchive, archivePlayl
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-base sm:text-lg truncate">{playlist.title}</h3>
+              <h3 className="font-semibold text-base sm:text-lg truncate">{getDisplayPlaylistName(playlist.title)}</h3>
               {isArchive && (
                 <span className="flex-shrink-0 text-[10px] sm:text-xs font-medium bg-yellow-600/30 text-yellow-400 px-1.5 py-0.5 rounded">
                   ARCHIVE
