@@ -311,6 +311,11 @@ export function YouTubeProvider({ children }) {
     }
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      if (response.status === 429) {
+        throw new Error('YouTube API quota exceeded (error 429)');
+      }
+      console.error('YouTube API Error:', response.status, response.statusText, errorData);
       throw new Error(`Failed to create playlist: ${response.statusText}`);
     }
 

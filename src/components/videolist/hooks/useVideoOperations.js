@@ -166,6 +166,12 @@ export function useVideoOperations(
   const handleArchiveVideos = async (videoIds, setError) => {
     if (!playlist || videoIds.length === 0) return false;
 
+    // Safety check: don't allow archiving from an archive playlist
+    if (isArchivePlaylist(playlist.title)) {
+      setError('Cannot archive videos from an archive playlist.');
+      return false;
+    }
+
     try {
       setArchiving(true);
       setError(null);
@@ -264,8 +270,12 @@ export function useVideoOperations(
       return true;
     } catch (err) {
       console.error('Error archiving videos:', err);
-      setError('Failed to archive videos. Please try again.');
-      setSnackbar({ isOpen: true, message: 'Failed to archive videos', type: 'error' });
+      const isQuotaError = err.message?.includes('quota') || err.message?.includes('429');
+      const errorMessage = isQuotaError 
+        ? 'YouTube API quota exceeded. Archive limit reached for today. Try again tomorrow.'
+        : 'Failed to archive videos. Please try again.';
+      setError(errorMessage);
+      setSnackbar({ isOpen: true, message: errorMessage, type: 'error' });
       return false;
     } finally {
       setArchiving(false);
