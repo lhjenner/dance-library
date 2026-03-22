@@ -31,9 +31,9 @@ import { useVideoData } from './hooks/useVideoData';
 import { useVideoOperations } from './hooks/useVideoOperations';
 import { useTagFiltering } from './hooks/useTagFiltering';
 
-function VideoList({ playlist, onBack }) {
+function VideoList({ playlist, onBack, onRestoreComplete }) {
   const { user } = useAuth();
-  const { getPlaylistVideos, deleteVideoFromPlaylist, addVideoToPlaylist, updateVideoPosition, createPlaylist, deletePlaylist } = useYouTube();
+  const { getPlaylistVideos, deleteVideoFromPlaylist, addVideoToPlaylist, updateVideoPosition, createPlaylist, deletePlaylist, getPlaylists } = useYouTube();
   
   // DnD sensors
   const sensors = useSensors(
@@ -96,7 +96,8 @@ function VideoList({ playlist, onBack }) {
     createPlaylist,
     deletePlaylist,
     targetPlaylists,
-    user
+    user,
+    getPlaylists
   );
 
   const {
@@ -230,6 +231,11 @@ function VideoList({ playlist, onBack }) {
     if (result.success) {
       setSelectedVideos([]);
       setIsSelectionMode(false);
+      // Navigate back if archive playlist was deleted
+      if (result.playlistDeleted && onRestoreComplete) {
+        const count = selectedVideos.length;
+        onRestoreComplete(`Successfully restored ${count} video${count !== 1 ? 's' : ''}`);
+      }
     } else if (result.error === 'MISSING_ORIGINAL') {
       setRestoreErrorData({
         isOpen: true,
@@ -262,6 +268,11 @@ function VideoList({ playlist, onBack }) {
         setRestoreErrorData({ isOpen: false, originalPlaylistName: '', videoIds: [] });
         setSelectedVideos([]);
         setIsSelectionMode(false);
+        // Navigate back if archive playlist was deleted
+        if (retryResult.playlistDeleted && onRestoreComplete) {
+          const count = videoIds.length;
+          onRestoreComplete(`Successfully restored ${count} video${count !== 1 ? 's' : ''}`);
+        }
       }
     } catch (err) {
       console.error('Error recreating playlist:', err);
@@ -310,6 +321,10 @@ function VideoList({ playlist, onBack }) {
           const result = await handleRestoreVideos([selectedVideo.id], setError);
           if (result.success) {
             setSelectedVideo(null);
+            // Navigate back if archive playlist was deleted
+            if (result.playlistDeleted && onRestoreComplete) {
+              onRestoreComplete('Successfully restored 1 video');
+            }
           } else if (result.error === 'MISSING_ORIGINAL') {
             setRestoreErrorData({
               isOpen: true,
@@ -465,7 +480,13 @@ function VideoList({ playlist, onBack }) {
                   }}
                   onRestore={async (video) => {
                     const result = await handleRestoreVideos([video.id], setError);
-                    if (result.error === 'MISSING_ORIGINAL') {
+                    if (result.success && result.playlistDeleted) {
+                      // Navigate back and show success message
+                      if (onRestoreComplete) {
+                        onRestoreComplete('Successfully restored 1 video(s).');
+                      }
+                      onBack();
+                    } else if (result.error === 'MISSING_ORIGINAL') {
                       setRestoreErrorData({
                         isOpen: true,
                         originalPlaylistName: result.originalPlaylistName,

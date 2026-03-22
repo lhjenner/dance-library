@@ -21,6 +21,7 @@ import {
 import VideoList from '../videolist/VideoList';
 import SortablePlaylistItem from './SortablePlaylistItem';
 import CreatePlaylistModal from './CreatePlaylistModal';
+import Snackbar from '../videolist/Snackbar';
 import { isArchivePlaylist, getArchivePlaylistName, findPlaylistByTitle } from '../../utils/archiveHelpers';
 
 const SELECTED_PLAYLIST_KEY = 'dance_library_selected_playlist';
@@ -35,6 +36,7 @@ function Playlists() {
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [showEmptyPlaylists, setShowEmptyPlaylists] = useState(preferences.showEmptyPlaylists);
   const [showArchivePlaylists, setShowArchivePlaylists] = useState(preferences.showArchivePlaylists);
+  const [snackbar, setSnackbar] = useState({ isOpen: false, message: '', type: 'success' });
 
   // Sync showEmptyPlaylists with preferences
   useEffect(() => {
@@ -95,7 +97,9 @@ function Playlists() {
       
       const existingOrders = {};
       let maxOrder = 0;
+      const existingPlaylistIds = new Set();
       existingSnapshot.forEach((doc) => {
+        existingPlaylistIds.add(doc.id);
         const data = doc.data();
         if (data.order !== undefined) {
           existingOrders[doc.id] = data.order;
@@ -104,8 +108,10 @@ function Playlists() {
       });
       
       // Save to Firestore
+      const youtubePlaylistIds = new Set();
       for (let i = 0; i < youtubePlaylists.length; i++) {
         const playlist = youtubePlaylists[i];
+        youtubePlaylistIds.add(playlist.id);
         const playlistData = {
           id: playlist.id,
           userId: user.uid,
@@ -120,6 +126,15 @@ function Playlists() {
         };
         
         await setDoc(doc(playlistsRef, playlist.id), playlistData);
+      }
+      
+      // Clean up orphaned playlists (exist in Firestore but not on YouTube)
+      const orphanedIds = Array.from(existingPlaylistIds).filter(id => !youtubePlaylistIds.has(id));
+      if (orphanedIds.length > 0) {
+        console.log(`Cleaning up ${orphanedIds.length} orphaned playlist(s) from Firestore`);
+        for (const playlistId of orphanedIds) {
+          await deleteDoc(doc(playlistsRef, playlistId));
+        }
       }
       
       // onSnapshot will automatically update the UI
@@ -374,6 +389,11 @@ function Playlists() {
           sessionStorage.removeItem(SELECTED_PLAYLIST_KEY);
           setSelectedPlaylist(null);
         }}
+        onRestoreComplete={(message) => {
+          sessionStorage.removeItem(SELECTED_PLAYLIST_KEY);
+          setSelectedPlaylist(null);
+          setSnackbar({ isOpen: true, message, type: 'success' });
+        }}
       />
     );
   }
@@ -489,6 +509,13 @@ function Playlists() {
           </DndContext>
         </div>
       )}
+
+      <Snackbar
+        message={snackbar.message}
+        type={snackbar.type}
+        isOpen={snackbar.isOpen}
+        onClose={() => setSnackbar({ ...snackbar, isOpen: false })}
+      />
     </div>
   );
 }

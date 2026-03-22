@@ -31,16 +31,19 @@ export function useAllTags(userId) {
         });
 
         // Fetch all segment tags for the user
+        // Get video IDs first for filtering
+        const videoIds = videosSnapshot.docs.map(doc => doc.id);
+        
         try {
-          const segmentsQuery = query(
-            collectionGroup(db, 'segments'),
-            where('userId', '==', userId)
-          );
+          const segmentsQuery = query(collectionGroup(db, 'segments'));
           const segmentsSnapshot = await getDocs(segmentsQuery);
           
           segmentsSnapshot.forEach((doc) => {
             const segmentData = doc.data();
-            if (segmentData.tags && Array.isArray(segmentData.tags)) {
+            const videoId = doc.ref.parent.parent.id;
+            
+            // Only include segments from user's videos
+            if (videoIds.includes(videoId) && segmentData.tags && Array.isArray(segmentData.tags)) {
               segmentData.tags.forEach(tag => tagsSet.add(tag));
             }
           });
