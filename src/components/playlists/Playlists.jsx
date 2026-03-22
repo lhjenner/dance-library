@@ -23,6 +23,8 @@ import SortablePlaylistItem from './SortablePlaylistItem';
 import CreatePlaylistModal from './CreatePlaylistModal';
 import { isArchivePlaylist, getArchivePlaylistName, findPlaylistByTitle } from '../../utils/archiveHelpers';
 
+const SELECTED_PLAYLIST_KEY = 'dance_library_selected_playlist';
+
 function Playlists() {
   const { user } = useAuth();
   const { preferences, updatePreference } = usePreferences();
@@ -172,6 +174,29 @@ function Playlists() {
 
     return () => unsubscribe();
   }, [isYouTubeConnected, user]);
+
+  // Restore selected playlist from sessionStorage when playlists load
+  useEffect(() => {
+    if (playlists.length === 0 || selectedPlaylist) return;
+
+    const savedPlaylistId = sessionStorage.getItem(SELECTED_PLAYLIST_KEY);
+    if (savedPlaylistId) {
+      const playlist = playlists.find(p => p.id === savedPlaylistId);
+      if (playlist) {
+        setSelectedPlaylist(playlist);
+      } else {
+        // Playlist no longer exists, clear from session storage
+        sessionStorage.removeItem(SELECTED_PLAYLIST_KEY);
+      }
+    }
+  }, [playlists, selectedPlaylist]);
+
+  // Save selected playlist to sessionStorage when it changes
+  useEffect(() => {
+    if (selectedPlaylist) {
+      sessionStorage.setItem(SELECTED_PLAYLIST_KEY, selectedPlaylist.id);
+    }
+  }, [selectedPlaylist]);
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
@@ -345,7 +370,10 @@ function Playlists() {
     return (
       <VideoList
         playlist={selectedPlaylist}
-        onBack={() => setSelectedPlaylist(null)}
+        onBack={() => {
+          sessionStorage.removeItem(SELECTED_PLAYLIST_KEY);
+          setSelectedPlaylist(null);
+        }}
       />
     );
   }
