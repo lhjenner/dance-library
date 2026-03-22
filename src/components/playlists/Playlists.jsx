@@ -389,6 +389,9 @@ function Playlists() {
           sessionStorage.removeItem(SELECTED_PLAYLIST_KEY);
           setSelectedPlaylist(null);
         }}
+        onNavigateToPlaylist={(playlist) => {
+          setSelectedPlaylist(playlist);
+        }}
         onRestoreComplete={(message) => {
           sessionStorage.removeItem(SELECTED_PLAYLIST_KEY);
           setSelectedPlaylist(null);

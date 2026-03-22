@@ -370,5 +370,6 @@ export function useVideoOperations(
     handleArchiveVideos,
     handleRestoreVideos,
     isCurrentPlaylistArchive: isArchivePlaylist(playlist?.title || ''),
+    getAllPlaylists,
   };
 }

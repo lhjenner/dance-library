@@ -165,12 +165,16 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
     }
   };
 
-  const loadAllPlaylists = async () => {
-    try {
-      const playlistsRef = collection(db, 'playlists');
-      const q = query(playlistsRef, where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      
+  useEffect(() => {
+    loadVideos();
+  }, [playlist.id]);
+
+  // Set up real-time listener for playlists to detect new archives
+  useEffect(() => {
+    const playlistsRef = collection(db, 'playlists');
+    const q = query(playlistsRef, where('userId', '==', user.uid));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const loadedPlaylists = [];
       querySnapshot.forEach((doc) => {
         const playlistData = { id: doc.id, ...doc.data() };
@@ -181,15 +185,12 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
       
       loadedPlaylists.sort((a, b) => (a.order || 0) - (b.order || 0));
       setTargetPlaylists(loadedPlaylists);
-    } catch (err) {
-      console.error('Error loading playlists:', err);
-    }
-  };
+    }, (error) => {
+      console.error('Error loading playlists:', error);
+    });
 
-  useEffect(() => {
-    loadVideos();
-    loadAllPlaylists();
-  }, [playlist.id]);
+    return () => unsubscribe();
+  }, [playlist.id, user.uid]);
 
   // Set up real-time listener for segments to update tags immediately
   useEffect(() => {

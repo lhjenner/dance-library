@@ -30,8 +30,9 @@ import Snackbar from './Snackbar';
 import { useVideoData } from './hooks/useVideoData';
 import { useVideoOperations } from './hooks/useVideoOperations';
 import { useTagFiltering } from './hooks/useTagFiltering';
+import { getArchivePlaylistName, findPlaylistByTitle, isArchivePlaylist } from '../../utils/archiveHelpers';
 
-function VideoList({ playlist, onBack, onRestoreComplete }) {
+function VideoList({ playlist, onBack, onNavigateToPlaylist, onRestoreComplete }) {
   const { user } = useAuth();
   const { getPlaylistVideos, deleteVideoFromPlaylist, addVideoToPlaylist, updateVideoPosition, createPlaylist, deletePlaylist, getPlaylists } = useYouTube();
   
@@ -49,6 +50,9 @@ function VideoList({ playlist, onBack, onRestoreComplete }) {
   // Selection state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedVideos, setSelectedVideos] = useState([]);
+  
+  // Loading state for individual video operations
+  const [operatingVideoId, setOperatingVideoId] = useState(null);
   
   // Modal state
   const [showMoveModal, setShowMoveModal] = useState(false);
@@ -84,6 +88,7 @@ function VideoList({ playlist, onBack, onRestoreComplete }) {
     handleArchiveVideos,
     handleRestoreVideos,
     isCurrentPlaylistArchive,
+    getAllPlaylists,
   } = useVideoOperations(
     playlist,
     videos,
@@ -99,6 +104,12 @@ function VideoList({ playlist, onBack, onRestoreComplete }) {
     user,
     getPlaylists
   );
+
+  // Calculate archive playlist if current playlist is not an archive
+  const allPlaylists = getAllPlaylists();
+  const archivePlaylist = !isCurrentPlaylistArchive 
+    ? findPlaylistByTitle(getArchivePlaylistName(playlist.title), allPlaylists) 
+    : null;
 
   const {
     selectedTags,
@@ -313,24 +324,35 @@ function VideoList({ playlist, onBack, onRestoreComplete }) {
         video={selectedVideo}
         onBack={() => setSelectedVideo(null)}
         isCurrentPlaylistArchive={isCurrentPlaylistArchive}
+        isOperating={operatingVideoId === selectedVideo.id}
         onArchive={async () => {
-          const success = await handleArchiveVideos([selectedVideo.id], setError);
-          if (success) setSelectedVideo(null);
+          setOperatingVideoId(selectedVideo.id);
+          try {
+            const success = await handleArchiveVideos([selectedVideo.id], setError);
+            if (success) setSelectedVideo(null);
+          } finally {
+            setOperatingVideoId(null);
+          }
         }}
         onRestore={async () => {
-          const result = await handleRestoreVideos([selectedVideo.id], setError);
-          if (result.success) {
-            setSelectedVideo(null);
-            // Navigate back if archive playlist was deleted
-            if (result.playlistDeleted && onRestoreComplete) {
-              onRestoreComplete('Successfully restored 1 video');
+          setOperatingVideoId(selectedVideo.id);
+          try {
+            const result = await handleRestoreVideos([selectedVideo.id], setError);
+            if (result.success) {
+              setSelectedVideo(null);
+              // Navigate back if archive playlist was deleted
+              if (result.playlistDeleted && onRestoreComplete) {
+                onRestoreComplete('Successfully restored 1 video');
+              }
+            } else if (result.error === 'MISSING_ORIGINAL') {
+              setRestoreErrorData({
+                isOpen: true,
+                originalPlaylistName: result.originalPlaylistName,
+                videoIds: [selectedVideo.id],
+              });
             }
-          } else if (result.error === 'MISSING_ORIGINAL') {
-            setRestoreErrorData({
-              isOpen: true,
-              originalPlaylistName: result.originalPlaylistName,
-              videoIds: [selectedVideo.id],
-            });
+          } finally {
+            setOperatingVideoId(null);
           }
         }}
       />
@@ -416,6 +438,12 @@ function VideoList({ playlist, onBack, onRestoreComplete }) {
           isCurrentPlaylistArchive={isCurrentPlaylistArchive}
           archiving={archiving}
           restoring={restoring}
+          hasArchive={archivePlaylist !== null}
+          onViewArchive={() => {
+            if (archivePlaylist && onNavigateToPlaylist) {
+              onNavigateToPlaylist(archivePlaylist);
+            }
+          }}
           onCancel={() => {
             setIsSelectionMode(false);
             setSelectedVideos([]);
@@ -475,23 +503,34 @@ function VideoList({ playlist, onBack, onRestoreComplete }) {
                     setShowDeleteModal(true);
                   }}
                   isCurrentPlaylistArchive={isCurrentPlaylistArchive}
+                  isOperating={operatingVideoId === video.id}
                   onArchive={async (video) => {
-                    await handleArchiveVideos([video.id], setError);
+                    setOperatingVideoId(video.id);
+                    try {
+                      await handleArchiveVideos([video.id], setError);
+                    } finally {
+                      setOperatingVideoId(null);
+                    }
                   }}
                   onRestore={async (video) => {
-                    const result = await handleRestoreVideos([video.id], setError);
-                    if (result.success && result.playlistDeleted) {
-                      // Navigate back and show success message
-                      if (onRestoreComplete) {
-                        onRestoreComplete('Successfully restored 1 video(s).');
+                    setOperatingVideoId(video.id);
+                    try {
+                      const result = await handleRestoreVideos([video.id], setError);
+                      if (result.success && result.playlistDeleted) {
+                        // Navigate back and show success message
+                        if (onRestoreComplete) {
+                          onRestoreComplete('Successfully restored 1 video(s).');
+                        }
+                        onBack();
+                      } else if (result.error === 'MISSING_ORIGINAL') {
+                        setRestoreErrorData({
+                          isOpen: true,
+                          originalPlaylistName: result.originalPlaylistName,
+                          videoIds: [video.id],
+                        });
                       }
-                      onBack();
-                    } else if (result.error === 'MISSING_ORIGINAL') {
-                      setRestoreErrorData({
-                        isOpen: true,
-                        originalPlaylistName: result.originalPlaylistName,
-                        videoIds: [video.id],
-                      });
+                    } finally {
+                      setOperatingVideoId(null);
                     }
                   }}
                 />
