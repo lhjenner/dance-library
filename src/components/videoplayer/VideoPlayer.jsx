@@ -10,7 +10,7 @@ import PortraitControls from './PortraitControls';
 import SegmentMarkingSection from './SegmentMarkingSection';
 import TagsAndNotesSection from './TagsAndNotesSection';
 
-export default function VideoPlayer({ video, onBack }) {
+export default function VideoPlayer({ video, onBack, isCurrentPlaylistArchive, onArchive, onRestore, isOperating }) {
   const { user } = useAuth();
   const { preferences, updatePreference } = usePreferences();
   const [selectedSegmentForPlayback, setSelectedSegmentForPlayback] = useState(null);
@@ -172,6 +172,10 @@ export default function VideoPlayer({ video, onBack }) {
                 onSetStart={handleSetStart}
                 onSetEnd={handleSetEnd}
                 currentSegmentStart={currentSegment.start}
+                isCurrentPlaylistArchive={isCurrentPlaylistArchive}
+                onArchive={onArchive}
+                onRestore={onRestore}
+                isOperating={isOperating}
               />
             </>
           ) : (
@@ -197,6 +201,10 @@ export default function VideoPlayer({ video, onBack }) {
                     onSelectSegment={handleSelectSegmentForPlayback}
                     onClearSegment={handleClearSegmentSelection}
                     formatTime={formatTime}
+                    isCurrentPlaylistArchive={isCurrentPlaylistArchive}
+                    onArchive={onArchive}
+                    onRestore={onRestore}
+                    isOperating={isOperating}
                   />
                 </div>
 

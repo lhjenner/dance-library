@@ -16,6 +16,7 @@ export function usePreferences() {
 const DEFAULT_PREFERENCES = {
   defaultPlaybackSpeed: 1,
   showEmptyPlaylists: false,
+  showArchivePlaylists: false,
   lastAccessedPlaylistId: null,
 };
 

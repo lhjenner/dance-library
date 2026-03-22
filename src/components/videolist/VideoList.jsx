@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useYouTube } from '../../contexts/YouTubeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase/config';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, collection } from 'firebase/firestore';
 import {
   DndContext,
   closestCenter,
@@ -25,14 +25,16 @@ import MoveVideoModal from './MoveVideoModal';
 import CopyVideoModal from './CopyVideoModal';
 import DeleteVideoModal from './DeleteVideoModal';
 import PlaylistOrderErrorModal from './PlaylistOrderErrorModal';
+import RestoreErrorModal from './RestoreErrorModal';
 import Snackbar from './Snackbar';
 import { useVideoData } from './hooks/useVideoData';
 import { useVideoOperations } from './hooks/useVideoOperations';
 import { useTagFiltering } from './hooks/useTagFiltering';
+import { getArchivePlaylistName, findPlaylistByTitle, isArchivePlaylist } from '../../utils/archiveHelpers';
 
-function VideoList({ playlist, onBack }) {
+function VideoList({ playlist, onBack, onNavigateToPlaylist, onRestoreComplete }) {
   const { user } = useAuth();
-  const { getPlaylistVideos, deleteVideoFromPlaylist, addVideoToPlaylist, updateVideoPosition } = useYouTube();
+  const { getPlaylistVideos, deleteVideoFromPlaylist, addVideoToPlaylist, updateVideoPosition, createPlaylist, deletePlaylist, getPlaylists } = useYouTube();
   
   // DnD sensors
   const sensors = useSensors(
@@ -49,11 +51,15 @@ function VideoList({ playlist, onBack }) {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedVideos, setSelectedVideos] = useState([]);
   
+  // Loading state for individual video operations
+  const [operatingVideoId, setOperatingVideoId] = useState(null);
+  
   // Modal state
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPlaylistOrderErrorModal, setShowPlaylistOrderErrorModal] = useState(false);
+  const [restoreErrorData, setRestoreErrorData] = useState({ isOpen: false, originalPlaylistName: '', videoIds: [] });
   const [videoToDelete, setVideoToDelete] = useState(null);
   const [selectedTargetPlaylist, setSelectedTargetPlaylist] = useState(null);
   const [selectedCopyPlaylists, setSelectedCopyPlaylists] = useState([]);
@@ -72,11 +78,17 @@ function VideoList({ playlist, onBack }) {
 
   const {
     operating,
+    archiving,
+    restoring,
     snackbar,
     setSnackbar,
     handleRemoveVideo,
     handleMoveVideos,
     handleCopyVideos,
+    handleArchiveVideos,
+    handleRestoreVideos,
+    isCurrentPlaylistArchive,
+    getAllPlaylists,
   } = useVideoOperations(
     playlist,
     videos,
@@ -85,8 +97,19 @@ function VideoList({ playlist, onBack }) {
     setSelectedVideo,
     loadVideos,
     deleteVideoFromPlaylist,
-    addVideoToPlaylist
+    addVideoToPlaylist,
+    createPlaylist,
+    deletePlaylist,
+    targetPlaylists,
+    user,
+    getPlaylists
   );
+
+  // Calculate archive playlist if current playlist is not an archive
+  const allPlaylists = getAllPlaylists();
+  const archivePlaylist = !isCurrentPlaylistArchive 
+    ? findPlaylistByTitle(getArchivePlaylistName(playlist.title), allPlaylists) 
+    : null;
 
   const {
     selectedTags,
@@ -206,6 +229,74 @@ function VideoList({ playlist, onBack }) {
     }
   };
 
+  const onBulkArchive = async () => {
+    const success = await handleArchiveVideos(selectedVideos, setError);
+    if (success) {
+      setSelectedVideos([]);
+      setIsSelectionMode(false);
+    }
+  };
+
+  const onBulkRestore = async () => {
+    const result = await handleRestoreVideos(selectedVideos, setError);
+    if (result.success) {
+      setSelectedVideos([]);
+      setIsSelectionMode(false);
+      // Navigate back if archive playlist was deleted
+      if (result.playlistDeleted && onRestoreComplete) {
+        const count = selectedVideos.length;
+        onRestoreComplete(`Successfully restored ${count} video${count !== 1 ? 's' : ''}`);
+      }
+    } else if (result.error === 'MISSING_ORIGINAL') {
+      setRestoreErrorData({
+        isOpen: true,
+        originalPlaylistName: result.originalPlaylistName,
+        videoIds: [...selectedVideos],
+      });
+    }
+  };
+
+  const handleRecreateAndRestore = async (playlistName, videoIds) => {
+    try {
+      const result = await createPlaylist(playlistName);
+
+      const playlistData = {
+        id: result.id,
+        userId: user.uid,
+        youtubeId: result.id,
+        title: result.snippet.title,
+        description: result.snippet.description || '',
+        thumbnail: '',
+        videoCount: 0,
+        privacyStatus: result.status?.privacyStatus || 'unlisted',
+        lastSynced: new Date(),
+        order: (targetPlaylists?.length || 0) + 1,
+      };
+      await setDoc(doc(collection(db, 'playlists'), result.id), playlistData);
+
+      const retryResult = await handleRestoreVideos(videoIds, setError);
+      if (retryResult.success) {
+        setRestoreErrorData({ isOpen: false, originalPlaylistName: '', videoIds: [] });
+        setSelectedVideos([]);
+        setIsSelectionMode(false);
+        // Navigate back if archive playlist was deleted
+        if (retryResult.playlistDeleted && onRestoreComplete) {
+          const count = videoIds.length;
+          onRestoreComplete(`Successfully restored ${count} video${count !== 1 ? 's' : ''}`);
+        }
+      }
+    } catch (err) {
+      console.error('Error recreating playlist:', err);
+      setError('Failed to recreate playlist. Please try again.');
+    }
+  };
+
+  const handleSelectDifferentPlaylist = (videoIds) => {
+    setRestoreErrorData({ isOpen: false, originalPlaylistName: '', videoIds: [] });
+    setSelectedVideos(videoIds);
+    setShowMoveModal(true);
+  };
+
   if (loading) {
     return (
       <div>
@@ -232,6 +323,38 @@ function VideoList({ playlist, onBack }) {
       <VideoPlayer
         video={selectedVideo}
         onBack={() => setSelectedVideo(null)}
+        isCurrentPlaylistArchive={isCurrentPlaylistArchive}
+        isOperating={operatingVideoId === selectedVideo.id}
+        onArchive={async () => {
+          setOperatingVideoId(selectedVideo.id);
+          try {
+            const success = await handleArchiveVideos([selectedVideo.id], setError);
+            if (success) setSelectedVideo(null);
+          } finally {
+            setOperatingVideoId(null);
+          }
+        }}
+        onRestore={async () => {
+          setOperatingVideoId(selectedVideo.id);
+          try {
+            const result = await handleRestoreVideos([selectedVideo.id], setError);
+            if (result.success) {
+              setSelectedVideo(null);
+              // Navigate back if archive playlist was deleted
+              if (result.playlistDeleted && onRestoreComplete) {
+                onRestoreComplete('Successfully restored 1 video');
+              }
+            } else if (result.error === 'MISSING_ORIGINAL') {
+              setRestoreErrorData({
+                isOpen: true,
+                originalPlaylistName: result.originalPlaylistName,
+                videoIds: [selectedVideo.id],
+              });
+            }
+          } finally {
+            setOperatingVideoId(null);
+          }
+        }}
       />
     );
   }
@@ -282,6 +405,15 @@ function VideoList({ playlist, onBack }) {
         onClose={() => setShowPlaylistOrderErrorModal(false)}
       />
 
+      <RestoreErrorModal
+        isOpen={restoreErrorData.isOpen}
+        onClose={() => setRestoreErrorData({ isOpen: false, originalPlaylistName: '', videoIds: [] })}
+        originalPlaylistName={restoreErrorData.originalPlaylistName}
+        videoIds={restoreErrorData.videoIds}
+        onRecreate={handleRecreateAndRestore}
+        onSelectDifferent={handleSelectDifferentPlaylist}
+      />
+
       <div className="sticky top-0 z-50 bg-gray-900 pb-4">
         <button
           onClick={onBack}
@@ -301,6 +433,17 @@ function VideoList({ playlist, onBack }) {
           onStartSelection={() => setIsSelectionMode(true)}
           onShowMove={() => setShowMoveModal(true)}
           onShowCopy={() => setShowCopyModal(true)}
+          onArchive={onBulkArchive}
+          onRestore={onBulkRestore}
+          isCurrentPlaylistArchive={isCurrentPlaylistArchive}
+          archiving={archiving}
+          restoring={restoring}
+          hasArchive={archivePlaylist !== null}
+          onViewArchive={() => {
+            if (archivePlaylist && onNavigateToPlaylist) {
+              onNavigateToPlaylist(archivePlaylist);
+            }
+          }}
           onCancel={() => {
             setIsSelectionMode(false);
             setSelectedVideos([]);
@@ -358,6 +501,37 @@ function VideoList({ playlist, onBack }) {
                   onRemove={(video) => {
                     setVideoToDelete(video);
                     setShowDeleteModal(true);
+                  }}
+                  isCurrentPlaylistArchive={isCurrentPlaylistArchive}
+                  isOperating={operatingVideoId === video.id}
+                  onArchive={async (video) => {
+                    setOperatingVideoId(video.id);
+                    try {
+                      await handleArchiveVideos([video.id], setError);
+                    } finally {
+                      setOperatingVideoId(null);
+                    }
+                  }}
+                  onRestore={async (video) => {
+                    setOperatingVideoId(video.id);
+                    try {
+                      const result = await handleRestoreVideos([video.id], setError);
+                      if (result.success && result.playlistDeleted) {
+                        // Navigate back and show success message
+                        if (onRestoreComplete) {
+                          onRestoreComplete('Successfully restored 1 video(s).');
+                        }
+                        onBack();
+                      } else if (result.error === 'MISSING_ORIGINAL') {
+                        setRestoreErrorData({
+                          isOpen: true,
+                          originalPlaylistName: result.originalPlaylistName,
+                          videoIds: [video.id],
+                        });
+                      }
+                    } finally {
+                      setOperatingVideoId(null);
+                    }
                   }}
                 />
               ))}

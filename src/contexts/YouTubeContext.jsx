@@ -255,7 +255,7 @@ export function YouTubeProvider({ children }) {
 
   const getPlaylists = async () => {
     const data = await makeYouTubeRequest('playlists', {
-      part: 'snippet,contentDetails',
+      part: 'snippet,contentDetails,status',
       mine: true,
       maxResults: 50,
     });
@@ -286,7 +286,7 @@ export function YouTubeProvider({ children }) {
     return allVideos;
   };
 
-  const createPlaylist = async (title, description = '') => {
+  const createPlaylist = async (title, description = '', privacyStatus = 'unlisted') => {
     const url = 'https://www.googleapis.com/youtube/v3/playlists?part=snippet,status';
     const response = await fetch(url, {
       method: 'POST',
@@ -300,7 +300,7 @@ export function YouTubeProvider({ children }) {
           description: description,
         },
         status: {
-          privacyStatus: 'private',
+          privacyStatus: privacyStatus,
         },
       }),
     });
@@ -311,6 +311,11 @@ export function YouTubeProvider({ children }) {
     }
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      if (response.status === 429) {
+        throw new Error('YouTube API quota exceeded (error 429)');
+      }
+      console.error('YouTube API Error:', response.status, response.statusText, errorData);
       throw new Error(`Failed to create playlist: ${response.statusText}`);
     }
 
@@ -382,7 +387,14 @@ export function YouTubeProvider({ children }) {
     }
 
     if (!response.ok) {
-      throw new Error(`Failed to remove video: ${response.statusText}`);
+      const errorBody = await response.text();
+      console.error('Delete video error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        playlistItemId,
+        errorBody,
+      });
+      throw new Error(`Failed to remove video: ${response.statusText} (${response.status})`);
     }
 
     return true;

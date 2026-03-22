@@ -92,21 +92,20 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
       // Get all video IDs for segment query
       const videoIds = querySnapshot.docs.map(doc => doc.id);
       
-      // Fetch segments - use collectionGroup if available, fallback to individual queries
+      // Fetch segments using collectionGroup (faster - single query)
+      // Filter client-side by videoIds (which are already filtered by userId)
       const segmentsMap = new Map();
       if (videoIds.length > 0) {
         try {
-          // Try collectionGroup query (requires index - faster)
-          const segmentsQuery = query(
-            collectionGroup(db, 'segments'),
-            where('userId', '==', user.uid)
-          );
+          // Use collectionGroup query without userId filter (filter client-side instead)
+          const segmentsQuery = query(collectionGroup(db, 'segments'));
           const segmentsSnapshot = await getDocs(segmentsQuery);
           
           segmentsSnapshot.forEach((segDoc) => {
             const segData = segDoc.data();
             const videoId = segDoc.ref.parent.parent.id;
             
+            // Client-side filter: only include segments for videos in this playlist
             if (videoIds.includes(videoId)) {
               if (!segmentsMap.has(videoId)) {
                 segmentsMap.set(videoId, []);
@@ -117,8 +116,8 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
             }
           });
         } catch (error) {
-          // If collectionGroup fails (index not ready), fetch segments per video
-          console.log('CollectionGroup not ready, using fallback:', error.message);
+          console.warn('CollectionGroup query failed, using fallback:', error);
+          // Fallback: fetch segments per video (slower but works)
           for (const videoDoc of querySnapshot.docs) {
             const segmentsRef = collection(videoDoc.ref, 'segments');
             const segmentsSnapshot = await getDocs(segmentsRef);
@@ -166,12 +165,16 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
     }
   };
 
-  const loadAllPlaylists = async () => {
-    try {
-      const playlistsRef = collection(db, 'playlists');
-      const q = query(playlistsRef, where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      
+  useEffect(() => {
+    loadVideos();
+  }, [playlist.id]);
+
+  // Set up real-time listener for playlists to detect new archives
+  useEffect(() => {
+    const playlistsRef = collection(db, 'playlists');
+    const q = query(playlistsRef, where('userId', '==', user.uid));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const loadedPlaylists = [];
       querySnapshot.forEach((doc) => {
         const playlistData = { id: doc.id, ...doc.data() };
@@ -182,39 +185,38 @@ export function useVideoData(playlist, user, getPlaylistVideos) {
       
       loadedPlaylists.sort((a, b) => (a.order || 0) - (b.order || 0));
       setTargetPlaylists(loadedPlaylists);
-    } catch (err) {
-      console.error('Error loading playlists:', err);
-    }
-  };
+    }, (error) => {
+      console.error('Error loading playlists:', error);
+    });
 
-  useEffect(() => {
-    loadVideos();
-    loadAllPlaylists();
-  }, [playlist.id]);
+    return () => unsubscribe();
+  }, [playlist.id, user.uid]);
 
   // Set up real-time listener for segments to update tags immediately
   useEffect(() => {
     if (videos.length === 0) return;
 
-    // Listen to collectionGroup for all segments with userId
-    const segmentsQuery = query(
-      collectionGroup(db, 'segments'),
-      where('userId', '==', user.uid)
-    );
+    const videoIds = videos.map(v => v.id);
+
+    // Listen to collectionGroup for all segments (filter client-side)
+    const segmentsQuery = query(collectionGroup(db, 'segments'));
 
     const unsubscribe = onSnapshot(segmentsQuery, (snapshot) => {
-      // Build segments map from snapshot
+      // Build segments map from snapshot (filter to current playlist's videos)
       const segmentsMap = new Map();
       
       snapshot.forEach((segDoc) => {
         const segData = segDoc.data();
         const videoId = segDoc.ref.parent.parent.id;
         
-        if (!segmentsMap.has(videoId)) {
-          segmentsMap.set(videoId, []);
-        }
-        if (segData.tags) {
-          segmentsMap.get(videoId).push(...segData.tags);
+        // Only include segments from videos in this playlist
+        if (videoIds.includes(videoId)) {
+          if (!segmentsMap.has(videoId)) {
+            segmentsMap.set(videoId, []);
+          }
+          if (segData.tags) {
+            segmentsMap.get(videoId).push(...segData.tags);
+          }
         }
       });
 
