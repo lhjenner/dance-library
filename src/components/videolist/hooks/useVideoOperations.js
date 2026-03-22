@@ -199,17 +199,28 @@ export function useVideoOperations(
         const video = videos.find(v => v.id === videoId);
         if (!video) continue;
 
-        if (video.playlistItemId) {
-          await deleteVideoFromPlaylist(video.playlistItemId);
-        }
-        const addResult = await addVideoToPlaylist(archivePlaylist.id, video.youtubeId);
+        try {
+          if (video.playlistItemId) {
+            try {
+              await deleteVideoFromPlaylist(video.playlistItemId);
+            } catch (deleteErr) {
+              // If delete fails, video might already be removed from YouTube
+              // Log the error but continue with archiving process
+              console.warn(`Could not remove video "${video.title}" from source playlist (may already be removed):`, deleteErr);
+            }
+          }
+          const addResult = await addVideoToPlaylist(archivePlaylist.id, video.youtubeId);
 
-        const videoRef = doc(db, 'videos', videoId);
-        await updateDoc(videoRef, {
-          playlistId: archivePlaylist.id,
-          playlistItemId: addResult.id,
-          position: 0,
-        });
+          const videoRef = doc(db, 'videos', videoId);
+          await updateDoc(videoRef, {
+            playlistId: archivePlaylist.id,
+            playlistItemId: addResult.id,
+            position: 0,
+          });
+        } catch (err) {
+          console.error(`Error archiving video "${video.title}" (${videoId}):`, err);
+          throw new Error(`Failed to archive "${video.title}": ${err.message}`);
+        }
       }
 
       // Update video counts
@@ -258,17 +269,28 @@ export function useVideoOperations(
         const video = videos.find(v => v.id === videoId);
         if (!video) continue;
 
-        if (video.playlistItemId) {
-          await deleteVideoFromPlaylist(video.playlistItemId);
-        }
-        const addResult = await addVideoToPlaylist(originalPlaylist.id, video.youtubeId);
+        try {
+          if (video.playlistItemId) {
+            try {
+              await deleteVideoFromPlaylist(video.playlistItemId);
+            } catch (deleteErr) {
+              // If delete fails, video might already be removed from YouTube
+              // Log the error but continue with restore process
+              console.warn(`Could not remove video "${video.title}" from archive playlist (may already be removed):`, deleteErr);
+            }
+          }
+          const addResult = await addVideoToPlaylist(originalPlaylist.id, video.youtubeId);
 
-        const videoRef = doc(db, 'videos', videoId);
-        await updateDoc(videoRef, {
-          playlistId: originalPlaylist.id,
-          playlistItemId: addResult.id,
-          position: 0,
-        });
+          const videoRef = doc(db, 'videos', videoId);
+          await updateDoc(videoRef, {
+            playlistId: originalPlaylist.id,
+            playlistItemId: addResult.id,
+            position: 0,
+          });
+        } catch (err) {
+          console.error(`Error restoring video "${video.title}" (${videoId}):`, err);
+          throw new Error(`Failed to restore "${video.title}": ${err.message}`);
+        }
       }
 
       // Update video counts

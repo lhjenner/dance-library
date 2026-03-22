@@ -382,7 +382,14 @@ export function YouTubeProvider({ children }) {
     }
 
     if (!response.ok) {
-      throw new Error(`Failed to remove video: ${response.statusText}`);
+      const errorBody = await response.text();
+      console.error('Delete video error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        playlistItemId,
+        errorBody,
+      });
+      throw new Error(`Failed to remove video: ${response.statusText} (${response.status})`);
     }
 
     return true;
