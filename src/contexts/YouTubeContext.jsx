@@ -255,7 +255,7 @@ export function YouTubeProvider({ children }) {
 
   const getPlaylists = async () => {
     const data = await makeYouTubeRequest('playlists', {
-      part: 'snippet,contentDetails',
+      part: 'snippet,contentDetails,status',
       mine: true,
       maxResults: 50,
     });
@@ -286,7 +286,7 @@ export function YouTubeProvider({ children }) {
     return allVideos;
   };
 
-  const createPlaylist = async (title, description = '') => {
+  const createPlaylist = async (title, description = '', privacyStatus = 'unlisted') => {
     const url = 'https://www.googleapis.com/youtube/v3/playlists?part=snippet,status';
     const response = await fetch(url, {
       method: 'POST',
@@ -300,7 +300,7 @@ export function YouTubeProvider({ children }) {
           description: description,
         },
         status: {
-          privacyStatus: 'private',
+          privacyStatus: privacyStatus,
         },
       }),
     });

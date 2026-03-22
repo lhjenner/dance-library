@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { db } from '../../../firebase/config';
-import { doc, deleteDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, updateDoc, increment, collection } from 'firebase/firestore';
+import { getArchivePlaylistName, getOriginalPlaylistName, isArchivePlaylist, findPlaylistByTitle } from '../../../utils/archiveHelpers';
 
 export function useVideoOperations(
   playlist,
@@ -10,9 +11,15 @@ export function useVideoOperations(
   setSelectedVideo,
   loadVideos,
   deleteVideoFromPlaylist,
-  addVideoToPlaylist
+  addVideoToPlaylist,
+  createPlaylist,
+  deletePlaylistOnYouTube,
+  targetPlaylists,
+  user
 ) {
   const [operating, setOperating] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [snackbar, setSnackbar] = useState({ isOpen: false, message: '', type: 'success' });
 
   const handleRemoveVideo = async (videoToDelete, setError) => {
@@ -152,12 +159,164 @@ export function useVideoOperations(
     }
   };
 
+  // Build full playlists list (current + targets) for archive lookups
+  const getAllPlaylists = () => [playlist, ...(targetPlaylists || [])];
+
+  const handleArchiveVideos = async (videoIds, setError) => {
+    if (!playlist || videoIds.length === 0) return false;
+
+    try {
+      setArchiving(true);
+      setError(null);
+
+      const allPlaylists = getAllPlaylists();
+      const archivePlaylistName = getArchivePlaylistName(playlist.title);
+      let archivePlaylist = findPlaylistByTitle(archivePlaylistName, allPlaylists);
+
+      // Create archive playlist if it doesn't exist
+      if (!archivePlaylist) {
+        const privacyStatus = playlist.privacyStatus || 'unlisted';
+        const result = await createPlaylist(archivePlaylistName, '', privacyStatus);
+
+        const playlistData = {
+          id: result.id,
+          userId: user.uid,
+          youtubeId: result.id,
+          title: result.snippet.title,
+          description: result.snippet.description || '',
+          thumbnail: '',
+          videoCount: 0,
+          privacyStatus: result.status?.privacyStatus || privacyStatus,
+          lastSynced: new Date(),
+          order: allPlaylists.length,
+        };
+        await setDoc(doc(collection(db, 'playlists'), result.id), playlistData);
+        archivePlaylist = playlistData;
+      }
+
+      // Move each video: remove from source on YouTube, add to archive on YouTube, update Firestore
+      for (const videoId of videoIds) {
+        const video = videos.find(v => v.id === videoId);
+        if (!video) continue;
+
+        if (video.playlistItemId) {
+          await deleteVideoFromPlaylist(video.playlistItemId);
+        }
+        const addResult = await addVideoToPlaylist(archivePlaylist.id, video.youtubeId);
+
+        const videoRef = doc(db, 'videos', videoId);
+        await updateDoc(videoRef, {
+          playlistId: archivePlaylist.id,
+          playlistItemId: addResult.id,
+          position: 0,
+        });
+      }
+
+      // Update video counts
+      const sourceRef = doc(db, 'playlists', playlist.id);
+      await updateDoc(sourceRef, { videoCount: increment(-videoIds.length) });
+
+      const archiveRef = doc(db, 'playlists', archivePlaylist.id);
+      await updateDoc(archiveRef, { videoCount: increment(videoIds.length) });
+
+      await loadVideos();
+
+      const count = videoIds.length;
+      setSnackbar({
+        isOpen: true,
+        message: `Successfully archived ${count} video${count !== 1 ? 's' : ''}`,
+        type: 'success',
+      });
+      return true;
+    } catch (err) {
+      console.error('Error archiving videos:', err);
+      setError('Failed to archive videos. Please try again.');
+      setSnackbar({ isOpen: true, message: 'Failed to archive videos', type: 'error' });
+      return false;
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const handleRestoreVideos = async (videoIds, setError) => {
+    if (!playlist || videoIds.length === 0) return { success: false, error: 'UNKNOWN' };
+
+    try {
+      setRestoring(true);
+      setError(null);
+
+      const allPlaylists = getAllPlaylists();
+      const originalPlaylistName = getOriginalPlaylistName(playlist.title);
+      const originalPlaylist = findPlaylistByTitle(originalPlaylistName, allPlaylists);
+
+      if (!originalPlaylist) {
+        return { success: false, error: 'MISSING_ORIGINAL', originalPlaylistName };
+      }
+
+      // Move each video back to original playlist
+      for (const videoId of videoIds) {
+        const video = videos.find(v => v.id === videoId);
+        if (!video) continue;
+
+        if (video.playlistItemId) {
+          await deleteVideoFromPlaylist(video.playlistItemId);
+        }
+        const addResult = await addVideoToPlaylist(originalPlaylist.id, video.youtubeId);
+
+        const videoRef = doc(db, 'videos', videoId);
+        await updateDoc(videoRef, {
+          playlistId: originalPlaylist.id,
+          playlistItemId: addResult.id,
+          position: 0,
+        });
+      }
+
+      // Update video counts
+      const archiveRef = doc(db, 'playlists', playlist.id);
+      await updateDoc(archiveRef, { videoCount: increment(-videoIds.length) });
+
+      const originalRef = doc(db, 'playlists', originalPlaylist.id);
+      await updateDoc(originalRef, { videoCount: increment(videoIds.length) });
+
+      // Check if archive playlist is now empty — delete if so
+      const archiveSnap = await getDoc(archiveRef);
+      const remainingCount = archiveSnap.data()?.videoCount || 0;
+
+      if (remainingCount <= 0) {
+        await deletePlaylistOnYouTube(playlist.id);
+        await deleteDoc(archiveRef);
+      }
+
+      await loadVideos();
+
+      const count = videoIds.length;
+      setSnackbar({
+        isOpen: true,
+        message: `Successfully restored ${count} video${count !== 1 ? 's' : ''}`,
+        type: 'success',
+      });
+      return { success: true, error: null };
+    } catch (err) {
+      console.error('Error restoring videos:', err);
+      setError('Failed to restore videos. Please try again.');
+      setSnackbar({ isOpen: true, message: 'Failed to restore videos', type: 'error' });
+      return { success: false, error: 'UNKNOWN' };
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   return {
     operating,
+    archiving,
+    restoring,
     snackbar,
     setSnackbar,
     handleRemoveVideo,
     handleMoveVideos,
     handleCopyVideos,
+    handleArchiveVideos,
+    handleRestoreVideos,
+    isCurrentPlaylistArchive: isArchivePlaylist(playlist?.title || ''),
   };
 }

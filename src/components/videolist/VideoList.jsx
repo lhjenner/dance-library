@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useYouTube } from '../../contexts/YouTubeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase/config';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, collection } from 'firebase/firestore';
 import {
   DndContext,
   closestCenter,
@@ -25,6 +25,7 @@ import MoveVideoModal from './MoveVideoModal';
 import CopyVideoModal from './CopyVideoModal';
 import DeleteVideoModal from './DeleteVideoModal';
 import PlaylistOrderErrorModal from './PlaylistOrderErrorModal';
+import RestoreErrorModal from './RestoreErrorModal';
 import Snackbar from './Snackbar';
 import { useVideoData } from './hooks/useVideoData';
 import { useVideoOperations } from './hooks/useVideoOperations';
@@ -32,7 +33,7 @@ import { useTagFiltering } from './hooks/useTagFiltering';
 
 function VideoList({ playlist, onBack }) {
   const { user } = useAuth();
-  const { getPlaylistVideos, deleteVideoFromPlaylist, addVideoToPlaylist, updateVideoPosition } = useYouTube();
+  const { getPlaylistVideos, deleteVideoFromPlaylist, addVideoToPlaylist, updateVideoPosition, createPlaylist, deletePlaylist } = useYouTube();
   
   // DnD sensors
   const sensors = useSensors(
@@ -54,6 +55,7 @@ function VideoList({ playlist, onBack }) {
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPlaylistOrderErrorModal, setShowPlaylistOrderErrorModal] = useState(false);
+  const [restoreErrorData, setRestoreErrorData] = useState({ isOpen: false, originalPlaylistName: '', videoIds: [] });
   const [videoToDelete, setVideoToDelete] = useState(null);
   const [selectedTargetPlaylist, setSelectedTargetPlaylist] = useState(null);
   const [selectedCopyPlaylists, setSelectedCopyPlaylists] = useState([]);
@@ -72,11 +74,16 @@ function VideoList({ playlist, onBack }) {
 
   const {
     operating,
+    archiving,
+    restoring,
     snackbar,
     setSnackbar,
     handleRemoveVideo,
     handleMoveVideos,
     handleCopyVideos,
+    handleArchiveVideos,
+    handleRestoreVideos,
+    isCurrentPlaylistArchive,
   } = useVideoOperations(
     playlist,
     videos,
@@ -85,7 +92,11 @@ function VideoList({ playlist, onBack }) {
     setSelectedVideo,
     loadVideos,
     deleteVideoFromPlaylist,
-    addVideoToPlaylist
+    addVideoToPlaylist,
+    createPlaylist,
+    deletePlaylist,
+    targetPlaylists,
+    user
   );
 
   const {
@@ -206,6 +217,64 @@ function VideoList({ playlist, onBack }) {
     }
   };
 
+  const onBulkArchive = async () => {
+    const success = await handleArchiveVideos(selectedVideos, setError);
+    if (success) {
+      setSelectedVideos([]);
+      setIsSelectionMode(false);
+    }
+  };
+
+  const onBulkRestore = async () => {
+    const result = await handleRestoreVideos(selectedVideos, setError);
+    if (result.success) {
+      setSelectedVideos([]);
+      setIsSelectionMode(false);
+    } else if (result.error === 'MISSING_ORIGINAL') {
+      setRestoreErrorData({
+        isOpen: true,
+        originalPlaylistName: result.originalPlaylistName,
+        videoIds: [...selectedVideos],
+      });
+    }
+  };
+
+  const handleRecreateAndRestore = async (playlistName, videoIds) => {
+    try {
+      const result = await createPlaylist(playlistName);
+
+      const playlistData = {
+        id: result.id,
+        userId: user.uid,
+        youtubeId: result.id,
+        title: result.snippet.title,
+        description: result.snippet.description || '',
+        thumbnail: '',
+        videoCount: 0,
+        privacyStatus: result.status?.privacyStatus || 'unlisted',
+        lastSynced: new Date(),
+        order: (targetPlaylists?.length || 0) + 1,
+      };
+      await setDoc(doc(collection(db, 'playlists'), result.id), playlistData);
+
+      const retryResult = await handleRestoreVideos(videoIds, setError);
+      if (retryResult.success) {
+        setRestoreErrorData({ isOpen: false, originalPlaylistName: '', videoIds: [] });
+        setSelectedVideos([]);
+        setIsSelectionMode(false);
+      }
+    } catch (err) {
+      console.error('Error recreating playlist:', err);
+      setError('Failed to recreate playlist. Please try again.');
+    }
+  };
+
+  const handleSelectDifferentPlaylist = (videoIds) => {
+    setRestoreErrorData({ isOpen: false, originalPlaylistName: '', videoIds: [] });
+    setSelectedVideos(videoIds);
+    setShowMoveModal(true);
+  };
+
   if (loading) {
     return (
       <div>
@@ -232,6 +301,23 @@ function VideoList({ playlist, onBack }) {
       <VideoPlayer
         video={selectedVideo}
         onBack={() => setSelectedVideo(null)}
+        isCurrentPlaylistArchive={isCurrentPlaylistArchive}
+        onArchive={async () => {
+          const success = await handleArchiveVideos([selectedVideo.id], setError);
+          if (success) setSelectedVideo(null);
+        }}
+        onRestore={async () => {
+          const result = await handleRestoreVideos([selectedVideo.id], setError);
+          if (result.success) {
+            setSelectedVideo(null);
+          } else if (result.error === 'MISSING_ORIGINAL') {
+            setRestoreErrorData({
+              isOpen: true,
+              originalPlaylistName: result.originalPlaylistName,
+              videoIds: [selectedVideo.id],
+            });
+          }
+        }}
       />
     );
   }
@@ -282,6 +368,15 @@ function VideoList({ playlist, onBack }) {
         onClose={() => setShowPlaylistOrderErrorModal(false)}
       />
 
+      <RestoreErrorModal
+        isOpen={restoreErrorData.isOpen}
+        onClose={() => setRestoreErrorData({ isOpen: false, originalPlaylistName: '', videoIds: [] })}
+        originalPlaylistName={restoreErrorData.originalPlaylistName}
+        videoIds={restoreErrorData.videoIds}
+        onRecreate={handleRecreateAndRestore}
+        onSelectDifferent={handleSelectDifferentPlaylist}
+      />
+
       <div className="sticky top-0 z-50 bg-gray-900 pb-4">
         <button
           onClick={onBack}
@@ -301,6 +396,11 @@ function VideoList({ playlist, onBack }) {
           onStartSelection={() => setIsSelectionMode(true)}
           onShowMove={() => setShowMoveModal(true)}
           onShowCopy={() => setShowCopyModal(true)}
+          onArchive={onBulkArchive}
+          onRestore={onBulkRestore}
+          isCurrentPlaylistArchive={isCurrentPlaylistArchive}
+          archiving={archiving}
+          restoring={restoring}
           onCancel={() => {
             setIsSelectionMode(false);
             setSelectedVideos([]);
@@ -358,6 +458,20 @@ function VideoList({ playlist, onBack }) {
                   onRemove={(video) => {
                     setVideoToDelete(video);
                     setShowDeleteModal(true);
+                  }}
+                  isCurrentPlaylistArchive={isCurrentPlaylistArchive}
+                  onArchive={async (video) => {
+                    await handleArchiveVideos([video.id], setError);
+                  }}
+                  onRestore={async (video) => {
+                    const result = await handleRestoreVideos([video.id], setError);
+                    if (result.error === 'MISSING_ORIGINAL') {
+                      setRestoreErrorData({
+                        isOpen: true,
+                        originalPlaylistName: result.originalPlaylistName,
+                        videoIds: [video.id],
+                      });
+                    }
                   }}
                 />
               ))}

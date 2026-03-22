@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-export default function SortablePlaylistItem({ playlist, onClick, onRename, onDelete, isEditing, editTitle, setEditTitle, onSaveRename }) {
+export default function SortablePlaylistItem({ playlist, isArchive, archivePlaylist, onClick, onViewArchive, onRename, onDelete, isEditing, editTitle, setEditTitle, onSaveRename }) {
   const {
     attributes,
     listeners,
@@ -30,7 +30,7 @@ export default function SortablePlaylistItem({ playlist, onClick, onRename, onDe
       ref={setNodeRef}
       style={style}
       onClick={handleClick}
-      className="bg-gray-800 rounded-lg px-3 sm:px-4 py-3 flex items-center gap-3 sm:gap-4 hover:bg-gray-750 transition-colors cursor-pointer touch-manipulation"
+      className={`bg-gray-800 rounded-lg px-3 sm:px-4 py-3 flex items-center gap-3 sm:gap-4 hover:bg-gray-750 transition-colors cursor-pointer touch-manipulation ${isArchive ? 'opacity-60' : ''}`}
     >
       <button
         {...attributes}
@@ -66,7 +66,14 @@ export default function SortablePlaylistItem({ playlist, onClick, onRename, onDe
           </div>
         ) : (
           <>
-            <h3 className="font-semibold text-base sm:text-lg truncate">{playlist.title}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-base sm:text-lg truncate">{playlist.title}</h3>
+              {isArchive && (
+                <span className="flex-shrink-0 text-[10px] sm:text-xs font-medium bg-yellow-600/30 text-yellow-400 px-1.5 py-0.5 rounded">
+                  ARCHIVE
+                </span>
+              )}
+            </div>
             <p className="text-gray-400 text-xs sm:text-sm">
               {playlist.videoCount} video{playlist.videoCount !== 1 ? 's' : ''}
             </p>
@@ -75,6 +82,20 @@ export default function SortablePlaylistItem({ playlist, onClick, onRename, onDe
       </div>
       {!isEditing && (
         <div className="flex items-center gap-1 sm:gap-2" data-action>
+          {archivePlaylist && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewArchive(archivePlaylist);
+              }}
+              className="text-amber-400 hover:text-amber-300 p-2 sm:px-2 sm:py-1 touch-manipulation"
+              title="View Archive"
+            >
+              <svg className="w-6 h-6 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();

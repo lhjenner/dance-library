@@ -21,6 +21,7 @@ import {
 import VideoList from '../videolist/VideoList';
 import SortablePlaylistItem from './SortablePlaylistItem';
 import CreatePlaylistModal from './CreatePlaylistModal';
+import { isArchivePlaylist, getArchivePlaylistName, findPlaylistByTitle } from '../../utils/archiveHelpers';
 
 function Playlists() {
   const { user } = useAuth();
@@ -31,17 +32,29 @@ function Playlists() {
   const [error, setError] = useState(null);
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [showEmptyPlaylists, setShowEmptyPlaylists] = useState(preferences.showEmptyPlaylists);
+  const [showArchivePlaylists, setShowArchivePlaylists] = useState(preferences.showArchivePlaylists);
 
   // Sync showEmptyPlaylists with preferences
   useEffect(() => {
     setShowEmptyPlaylists(preferences.showEmptyPlaylists);
   }, [preferences.showEmptyPlaylists]);
 
+  // Sync showArchivePlaylists with preferences
+  useEffect(() => {
+    setShowArchivePlaylists(preferences.showArchivePlaylists);
+  }, [preferences.showArchivePlaylists]);
+
   // Save showEmptyPlaylists to preferences when toggled
   const handleToggleEmptyPlaylists = () => {
     const newValue = !showEmptyPlaylists;
     setShowEmptyPlaylists(newValue);
     updatePreference('showEmptyPlaylists', newValue);
+  };
+
+  const handleToggleArchivePlaylists = () => {
+    const newValue = !showArchivePlaylists;
+    setShowArchivePlaylists(newValue);
+    updatePreference('showArchivePlaylists', newValue);
   };
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
@@ -99,6 +112,7 @@ function Playlists() {
           description: playlist.snippet.description,
           thumbnail: playlist.snippet.thumbnails?.medium?.url || '',
           videoCount: playlist.contentDetails.itemCount,
+          privacyStatus: playlist.status?.privacyStatus || 'unlisted',
           lastSynced: new Date(),
           order: existingOrders[playlist.id] !== undefined ? existingOrders[playlist.id] : maxOrder + i + 1,
         };
@@ -209,6 +223,7 @@ function Playlists() {
         description: result.snippet.description || '',
         thumbnail: '',
         videoCount: 0,
+        privacyStatus: result.status?.privacyStatus || 'unlisted',
         lastSynced: new Date(),
         order: playlists.length,
       };
@@ -335,10 +350,13 @@ function Playlists() {
     );
   }
 
-  // Filter playlists based on showEmptyPlaylists setting
-  const displayedPlaylists = showEmptyPlaylists
-    ? playlists
-    : playlists.filter(p => p.videoCount > 0);
+  // Filter playlists based on toggle settings
+  const archiveCount = playlists.filter(p => isArchivePlaylist(p.title)).length;
+  const displayedPlaylists = playlists.filter(p => {
+    if (!showEmptyPlaylists && p.videoCount === 0) return false;
+    if (!showArchivePlaylists && isArchivePlaylist(p.title)) return false;
+    return true;
+  });
 
   return (
     <div>
@@ -366,6 +384,17 @@ function Playlists() {
             />
             <span className="text-gray-300 whitespace-nowrap">Show empty</span>
           </label>
+          {archiveCount > 0 && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showArchivePlaylists}
+                onChange={handleToggleArchivePlaylists}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
+              />
+              <span className="text-gray-300 whitespace-nowrap">Archives ({archiveCount})</span>
+            </label>
+          )}
           <button
             onClick={() => setShowCreateModal(true)}
             className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
@@ -412,7 +441,10 @@ function Playlists() {
                   <SortablePlaylistItem
                     key={playlist.id}
                     playlist={playlist}
+                    isArchive={isArchivePlaylist(playlist.title)}
+                    archivePlaylist={!isArchivePlaylist(playlist.title) ? findPlaylistByTitle(getArchivePlaylistName(playlist.title), playlists) : null}
                     onClick={() => setSelectedPlaylist(playlist)}
+                    onViewArchive={(archivePl) => setSelectedPlaylist(archivePl)}
                     onRename={() => {
                       setEditingPlaylist(playlist.id);
                       setEditTitle(playlist.title);

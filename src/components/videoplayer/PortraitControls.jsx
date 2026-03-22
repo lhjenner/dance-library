@@ -15,6 +15,9 @@ export default function PortraitControls({
   onSelectSegment,
   onClearSegment,
   formatTime,
+  isCurrentPlaylistArchive,
+  onArchive,
+  onRestore,
 }) {
   const [showSpeedOptions, setShowSpeedOptions] = useState(false);
   const [showSegmentSelector, setShowSegmentSelector] = useState(false);
@@ -158,6 +161,24 @@ export default function PortraitControls({
             ))}
           </div>
         )}
+
+        {/* Archive/Restore button */}
+        {!isCurrentPlaylistArchive && onArchive && (
+          <button
+            onClick={onArchive}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white px-3 py-3 rounded-lg transition-colors touch-manipulation text-sm font-semibold mb-2"
+          >
+            Archive Video
+          </button>
+        )}
+        {isCurrentPlaylistArchive && onRestore && (
+          <button
+            onClick={onRestore}
+            className="w-full bg-amber-600 hover:bg-amber-700 text-white px-3 py-3 rounded-lg transition-colors touch-manipulation text-sm font-semibold mb-2"
+          >
+            Restore Video
+          </button>
+        )}
       </div>
 
       {/* Desktop layout */}
@@ -247,6 +268,24 @@ export default function PortraitControls({
             )}
           </div>
         </div>
+
+        {/* Archive/Restore button */}
+        {!isCurrentPlaylistArchive && onArchive && (
+          <button
+            onClick={onArchive}
+            className="mt-3 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors touch-manipulation font-semibold"
+          >
+            Archive Video
+          </button>
+        )}
+        {isCurrentPlaylistArchive && onRestore && (
+          <button
+            onClick={onRestore}
+            className="mt-3 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition-colors touch-manipulation font-semibold"
+          >
+            Restore Video
+          </button>
+        )}
       </div>
     </div>
   );

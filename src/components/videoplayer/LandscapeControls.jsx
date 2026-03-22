@@ -16,6 +16,9 @@ export default function LandscapeControls({
   onSetStart,
   onSetEnd,
   currentSegmentStart,
+  isCurrentPlaylistArchive,
+  onArchive,
+  onRestore,
 }) {
   const [showSpeedOptions, setShowSpeedOptions] = useState(false);
   const [showSegmentSelector, setShowSegmentSelector] = useState(false);
@@ -149,6 +152,24 @@ export default function LandscapeControls({
           </div>
         )}
       </div>
+
+      {/* Archive/Restore */}
+      {!isCurrentPlaylistArchive && onArchive && (
+        <button
+          onClick={onArchive}
+          className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded transition-colors touch-manipulation text-xs whitespace-nowrap"
+        >
+          Archive
+        </button>
+      )}
+      {isCurrentPlaylistArchive && onRestore && (
+        <button
+          onClick={onRestore}
+          className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded transition-colors touch-manipulation text-xs whitespace-nowrap"
+        >
+          Restore
+        </button>
+      )}
 
       <div className="flex-1"></div>
 

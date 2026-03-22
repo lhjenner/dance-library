@@ -6,6 +6,11 @@ export default function VideoListHeader({
   onStartSelection, 
   onShowMove, 
   onShowCopy, 
+  onArchive,
+  onRestore,
+  isCurrentPlaylistArchive,
+  archiving,
+  restoring,
   onCancel 
 }) {
   return (
@@ -45,6 +50,24 @@ export default function VideoListHeader({
                 >
                   Copy ({selectedCount})
                 </button>
+                {!isCurrentPlaylistArchive && (
+                  <button
+                    onClick={onArchive}
+                    disabled={archiving}
+                    className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white font-semibold px-4 py-3 sm:py-2 rounded-lg transition-colors touch-manipulation text-sm sm:text-base flex-1 sm:flex-none"
+                  >
+                    {archiving ? 'Archiving...' : `Archive (${selectedCount})`}
+                  </button>
+                )}
+                {isCurrentPlaylistArchive && (
+                  <button
+                    onClick={onRestore}
+                    disabled={restoring}
+                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-gray-600 text-white font-semibold px-4 py-3 sm:py-2 rounded-lg transition-colors touch-manipulation text-sm sm:text-base flex-1 sm:flex-none"
+                  >
+                    {restoring ? 'Restoring...' : `Restore (${selectedCount})`}
+                  </button>
+                )}
               </>
             )}
             <button
